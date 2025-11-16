@@ -1,8 +1,0 @@
-[19-Oct-2025 18:54:21 UTC] PHP Warning:  PHP Startup: Invalid date.timezone value '', using 'UTC' instead in Unknown on line 0
-[19-Oct-2025 18:54:46 UTC] PHP Warning:  PHP Startup: Invalid date.timezone value '', using 'UTC' instead in Unknown on line 0
-[19-Oct-2025 18:55:06 UTC] PHP Warning:  PHP Startup: Invalid date.timezone value '', using 'UTC' instead in Unknown on line 0
-[19-Oct-2025 18:58:59 UTC] PHP Warning:  PHP Startup: Invalid date.timezone value '', using 'UTC' instead in Unknown on line 0
-[20-Oct-2025 14:07:17 UTC] PHP Warning:  PHP Startup: Invalid date.timezone value '', using 'UTC' instead in Unknown on line 0
-[20-Oct-2025 14:07:17 UTC] PHP Parse error:  syntax error, unexpected token "return" in src/Controller/LibrarianController.php on line 50
-[04-Nov-2025 15:51:06 UTC] PHP Warning:  PHP Startup: Invalid date.timezone value '', using 'UTC' instead in Unknown on line 0
-[04-Nov-2025 15:51:06 UTC] PHP Parse error:  syntax error, unexpected token "=>" in src/Form/ImportForm.php on line 21
