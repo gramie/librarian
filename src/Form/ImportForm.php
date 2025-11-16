@@ -143,7 +143,7 @@ class ImportForm extends FormBase
 			->condition('type', 'holding')
 			->condition('field_owner', $uid);
 		$nids = $query->execute();
-		$nodes = \Drupal\node\Entity\Node::loadMultiple($nids);
+		$nodes = Node::loadMultiple($nids);
 		return array_map(function ($node) {
 			return $node->nid;
 		}, $nodes);
@@ -161,7 +161,7 @@ class ImportForm extends FormBase
 			->condition('type', 'book')
 			->condition('field_isbn', $isbns, 'IN')
 			->addTag('debug');
-		$nodes = \Drupal\node\Entity\Node::loadMultiple($query->execute());
+		$nodes = Node::loadMultiple($query->execute());
 
 		$result = [];
 		foreach($nodes as $node) {
