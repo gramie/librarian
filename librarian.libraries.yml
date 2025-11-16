@@ -1,0 +1,8 @@
+librarian:
+  js:
+    js/librarian.js: {}
+    js/lookup_book.js: {}
+    js/zxing.min.js: {}
+    js/barcode.js: {}
+  dependencies:
+    - core/jquery

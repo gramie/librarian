@@ -1,0 +1,38 @@
+<?php
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\StreamWrapper\PublicStream;
+use Drupal\Core\File\FileSystemInterface;
+
+/**
+ * Implements hook_form_alter
+ */
+function librarian_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+	if (in_array($form_id, ['node_holding_form', 'node_holding_edit_form'])) {
+	  $form['cover_image'] = [
+		'#type' => 'inline_template',
+		'#template' => '<img id="book-cover" src="" /><button id="lookup-isbn" type="button">Look up</button>',
+	  ];
+	}
+}
+
+function librarian_entity_presave(\Drupal\Core\Entity\EntityInterface $entity) {
+	if ($entity->bundle() === 'holding') {
+		// $imageURL = $entity->get('field_image_url')->value ?: '';
+		// if (str_starts_with($imageURL, 'https://covers.openlibrary.org')) {
+		//     _librarian_download_image($entity, $imageURL);
+		// }
+	}
+}
+
+function _librarian_download_image(\Drupal\Core\Entity\EntityInterface $entity, string $imageURL) {
+	$isbn = $entity->get('field_isbn')->value;
+	$imageTarget = "public://covers/$isbn.jpg";
+
+	$imageData = file_get_contents($imageURL);
+	$imageObject = \Drupal::service('file.repository')->writeData($imageData, $imageTarget);
+
+	$entity->set('field_book_cover', [
+		'target_id' => $imageObject->id(),
+		'alt' => 'Book cover'
+	]);
+}

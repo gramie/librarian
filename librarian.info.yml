@@ -1,0 +1,4 @@
+name: Librarian
+type: module
+description: A module to manage holdings in a library
+core_version_requirement: '>=10'

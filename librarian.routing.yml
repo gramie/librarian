@@ -1,0 +1,14 @@
+librarian.site_info:
+  path: /lookup-isbn
+  defaults:
+    _controller: Drupal\librarian\Controller\LibrarianController::lookupISBN
+  requirements:
+    _access: 'TRUE'
+
+librarian.import_form:
+  path: /import-isbn
+  defaults:
+    _form: Drupal\librarian\Form\ImportForm
+    _title: Import ISBNs
+  requirements:
+    _access: 'TRUE'
