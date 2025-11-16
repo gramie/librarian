@@ -6,6 +6,11 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Drupal\node\Entity\Node;
 
 class LibrarianController extends ControllerBase {
+	/**
+	 * Receive an ISBN for a book, and return the book's information
+	 * 
+	 * @return JsonResponse
+	 */
 	public function lookupISBN() : JsonResponse {
 		$param = \Drupal::request()->query->all();
 		$isbn = $param['isbn'];
@@ -47,29 +52,35 @@ class LibrarianController extends ControllerBase {
 		]);
 	}
 
+	/**
+	 * Go to an outside website to get book info if necessary
+	 * But first check to see if the book already exists
+	 * 
+	 * @param string $isbn
+	 * @return array|array{authors: mixed, categories: mixed, coverImage: mixed, description: mixed, isbn: string, publication_year: mixed, raw_data: bool|string, subtitle: mixed, title: mixed|array{error: string}}
+	 */
 	private function lookupBookInfo(string $isbn) : array {
 		$result = [];
 
-		$lookupURL = "https://openlibrary.org/api/volumes/brief/isbn/$isbn.json";
+		$lookupURL = "https://www.googleapis.com/books/v1/volumes?q=isbn:$isbn";
 		// dpr($lookupURL);
 		$rawResponse = file_get_contents($lookupURL);
 		$response = \Drupal\Component\Serialization\Json::decode($rawResponse);
+		dpr($response);
 
-		if (count($response) > 0) {
-			$book = array_pop($response['records']);
+		if ($response['totalItems'] > 0) {
+			$book = $response['items']['volumeInfo'];
 	// dpr($book);
-			$details = $book['details']['details'];
-			$authors = array_map(function($author) {
-				return $author['name'];
-			}, $book['data']['authors']);
 
 			$result = [
 				'isbn' => $isbn,
-				'title' => $details['title'],
-				'description' => $details['description']['value'] ?: $details['subtitle'] ?: '',
-				'publication_year' => $this->getPublicationYear($details['publish_date']),
-				'authors' => $authors,
-				'coverImage' => $book['data']['cover']['large'],
+				'title' => $book['title'],
+				'subtitle' => $book['subtitle'],
+				'description' => $book['description'],
+				'publication_year' => $this->getPublicationYear($book['publishedDate']),
+				'authors' => $book['authors'],
+				'coverImage' => $book['imageLinks']['thumbnail'],
+				'categories' => $book['categories'],
 				'raw_data' => $rawResponse,			
 			];
 		}
@@ -81,6 +92,10 @@ class LibrarianController extends ControllerBase {
 		return $result;
 	}
 
+	/**
+	 * Convert a date string into a year that the book was published (date strings may be in different formats)
+	 * @param mixed $pubDate
+	 */
 	private function getPublicationYear($pubDate) {
 		// Date is like "1975-04-22"
 		if (preg_match('/(\d\d\d\d)-\d\d-\d\d/', $pubDate, $matches)) {
@@ -94,6 +109,12 @@ class LibrarianController extends ControllerBase {
 		return date('Y', strtodate($pubDate));
 	}
 
+	/**
+	 * Get the book nodes owned by the given User
+	 * 
+	 * @param int $ownerID
+	 * @return void
+	 */
 	private function getOwnerBooks(int $ownerID) {
 		$entityTypeManager = $this->entityTypeManager();
 		$nodeStorage = $entityTypeManager->getStorage('node');
@@ -110,6 +131,12 @@ class LibrarianController extends ControllerBase {
 		
 	}
 
+	/**
+	 * Get a book from the database if it exists
+	 * 
+	 * @param string $isbn
+	 * @return array
+	 */
 	private function getExistingBook(string $isbn) : array {
 		$result = [];
 		// dpr($isbn);
@@ -131,6 +158,12 @@ class LibrarianController extends ControllerBase {
 		return $result;
 	}
 
+	/**
+	 * Save book info into the database
+	 * 
+	 * @param array $bookInfo
+	 * @return void
+	 */
 	private function saveNewBookInfo(array $bookInfo) : void {
 		// dpr($bookInfo);
 		$node = Node::create([
@@ -154,6 +187,12 @@ class LibrarianController extends ControllerBase {
 		$node->save();
 	}
 
+	/**
+	 * Take a URL and download the image into the local filesystem
+	 * 
+	 * @param string $isbn
+	 * @param string $imageURL
+	 */
 	private function downloadImage(string $isbn, string $imageURL) {
 		$imageTarget = "public://covers/$isbn.jpg";
 
