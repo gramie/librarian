@@ -28,6 +28,7 @@ class ImportForm extends FormBase
 			'#title' => 'ISBN',
 			'#default_value' => '',
 		];
+		
 
 		$form['scanner'] = [
 			'#type' => 'inline_template',
@@ -101,6 +102,9 @@ class ImportForm extends FormBase
 		$bookNIDs = $this->getBookNIDs($booksToAdd);
 		$uid = \Drupal::currentUser()->id();
 		$currentHoldings = $this->getUserHoldings($uid);
+		dpr($currentHoldings);
+		dpr($bookNIDs);
+		dpr($booksToAdd);
 		foreach ($booksToAdd as $isbn) {
 			if (!in_array($isbn, $currentHoldings)) {
 				$this->addHolding($uid, $bookNIDs[$isbn], $isbn);

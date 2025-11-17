@@ -1,11 +1,13 @@
-
-jQuery('#edit-isbn').change(function (event) {
-	const isbnControl = jQuery(this);
-	// isbnControl.parent().append(Drupal.theme.ajaxProgressThrobber(Drupal.t('Loading...'));
-	processISBN(isbnControl.val())
-	event.preventDefault();
-	isbnControl.val('');
-});
+jQuery('#edit-isbn')
+	.keypress(function(event) {
+		if (event.keyCode == 13) {
+			const isbnControl = jQuery(this);
+			// isbnControl.parent().append(Drupal.theme.ajaxProgressThrobber(Drupal.t('Loading...'));
+			processISBN(isbnControl.val())
+			event.preventDefault();
+			isbnControl.val('');
+		}
+	})
 
 function processISBN(isbn) {
 	stopDuplicates = true;

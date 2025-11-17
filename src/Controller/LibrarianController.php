@@ -18,7 +18,7 @@ class LibrarianController extends ControllerBase {
 		$bookInfo = $this->getExistingBook($isbn);
 
 		if (!$bookInfo) {
-			$bookInfo = $this->lookupBookInfo($isbn);
+			$bookInfo = $this->lookupBookInfoGoogle($isbn);
 			$this->saveNewBookInfo($bookInfo);
 			$bookInfo = $this->getExistingBook($isbn);
 		}
@@ -59,24 +59,21 @@ class LibrarianController extends ControllerBase {
 	 * @param string $isbn
 	 * @return array|array{authors: mixed, categories: mixed, coverImage: mixed, description: mixed, isbn: string, publication_year: mixed, raw_data: bool|string, subtitle: mixed, title: mixed|array{error: string}}
 	 */
-	private function lookupBookInfo(string $isbn) : array {
+	private function lookupBookInfoGoogle(string $isbn) : array {
 		$result = [];
 
 		$lookupURL = "https://www.googleapis.com/books/v1/volumes?q=isbn:$isbn";
 		// dpr($lookupURL);
 		$rawResponse = file_get_contents($lookupURL);
 		$response = \Drupal\Component\Serialization\Json::decode($rawResponse);
-		dpr($response);
-
 		if ($response['totalItems'] > 0) {
-			$book = $response['items']['volumeInfo'];
-	// dpr($book);
-
+			$book = $response['items'][0]['volumeInfo'];
 			$result = [
 				'isbn' => $isbn,
 				'title' => $book['title'],
-				'subtitle' => $book['subtitle'],
-				'description' => $book['description'],
+				'language' => $book['language'],
+				'subtitle' => $book['subtitle'] ?? '',
+				'description' => $book['description'] ?? '',
 				'publication_year' => $this->getPublicationYear($book['publishedDate']),
 				'authors' => $book['authors'],
 				'coverImage' => $book['imageLinks']['thumbnail'],
@@ -90,6 +87,40 @@ class LibrarianController extends ControllerBase {
 		}
 
 		return $result;
+	}
+
+	private function lookupBookInfoOpenLibrary(string $isbn) : array {
+		$result = [];
+
+		$lookupURL = "https://openlibrary.org/api/volumes/brief/isbn/$isbn.json";
+		// dpr($lookupURL);
+		$rawResponse = file_get_contents($lookupURL);
+		$response = \Drupal\Component\Serialization\Json::decode($rawResponse);
+
+		if (count($response) > 0) {
+			$book = array_pop($response['records']);
+	// dpr($book);
+			$details = $book['details']['details'];
+			$authors = array_map(function($author) {
+				return $author['name'];
+			}, $book['data']['authors']);
+
+			$result = [
+				'isbn' => $isbn,
+				'title' => $details['title'],
+				'description' => $details['description']['value'] ?: $details['subtitle'] ?: '',
+				'publication_year' => $this->getPublicationYear($details['publish_date']),
+				'authors' => $authors,
+				'coverImage' => $book['data']['cover']['large'],
+				'raw_data' => $rawResponse,			
+			];
+		}
+
+		if ($result == []) {
+			$result = ['error' => 'Book not found'];
+		}
+
+		return $result;		
 	}
 
 	/**
@@ -106,7 +137,7 @@ class LibrarianController extends ControllerBase {
 			return $matches[1];
 		}
 		// Date may be some other string that can be parsed, like "April 22, 1975"
-		return date('Y', strtodate($pubDate));
+		return date('Y', strtotime($pubDate));
 	}
 
 	/**
@@ -165,7 +196,8 @@ class LibrarianController extends ControllerBase {
 	 * @return void
 	 */
 	private function saveNewBookInfo(array $bookInfo) : void {
-		// dpr($bookInfo);
+		dpr("SaVING");
+		dpr($bookInfo);
 		$node = Node::create([
 			'type' => 'book',
 			'title' => $bookInfo['title'],
@@ -174,6 +206,7 @@ class LibrarianController extends ControllerBase {
 				'format' => 'full_html'
 			],
 		]);
+		$node->field_subtitle = $bookInfo['subtitle'];
 		$node->field_isbn = $bookInfo['isbn'];
 		$node->field_authors = $bookInfo['authors'];
 		$node->field_raw_data = $bookInfo['raw_data'];
