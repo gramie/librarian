@@ -5,6 +5,13 @@ librarian.site_info:
   requirements:
     _access: 'TRUE'
 
+librarian.library_info:
+  path: /get-library
+  defaults:
+    _controller: Drupal\librarian\Controller\LibrarianController::getLibraryInfo
+  requirements:
+    _access: 'TRUE'
+
 librarian.import_form:
   path: /import-isbn
   defaults:

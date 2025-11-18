@@ -28,7 +28,7 @@ class ImportForm extends FormBase
 			'#title' => 'ISBN',
 			'#default_value' => '',
 		];
-		
+
 
 		$form['scanner'] = [
 			'#type' => 'inline_template',
@@ -102,16 +102,19 @@ class ImportForm extends FormBase
 		$bookNIDs = $this->getBookNIDs($booksToAdd);
 		$uid = \Drupal::currentUser()->id();
 		$currentHoldings = $this->getUserHoldings($uid);
-		dpr($currentHoldings);
-		dpr($bookNIDs);
-		dpr($booksToAdd);
+		// dpr("Holdings");
+		// dpr($currentHoldings);
+		// dpr("ISBNs submitted");
+		// dpr($booksToAdd);
+		// Now add any holdings (copies of the submitted books) that this user doesn't have yet
 		foreach ($booksToAdd as $isbn) {
 			if (!in_array($isbn, $currentHoldings)) {
+				// dpr("Adding holding $isbn");
 				$this->addHolding($uid, $bookNIDs[$isbn], $isbn);
+			} else {
+				// dpr("You already have $isbn");
 			}
 		}
-		
-		// Now add any holdings (copies of the submitted books) that this user doesn't have yet
 	}
 
 	/**
@@ -146,11 +149,20 @@ class ImportForm extends FormBase
 			->accessCheck(true)
 			->condition('type', 'holding')
 			->condition('field_owner', $uid);
+
 		$nids = $query->execute();
 		$nodes = Node::loadMultiple($nids);
-		return array_map(function ($node) {
-			return $node->nid;
-		}, $nodes);
+		// dpr($nodes);
+		// dpr($nodes[33]->get('field_available')->value);
+		$booksNIDs = array_values(array_map(function ($node) {
+			return $node->get('field_holding_book')->target_id;
+		}, $nodes));
+
+		$books = Node::loadMultiple(($booksNIDs));
+		return array_map(function($book) {
+			return $book->field_isbn->value;
+
+		}, $books);
 	}
 
 	/**

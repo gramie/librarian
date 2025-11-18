@@ -5,13 +5,14 @@ use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Drupal\node\Entity\Node;
 
-class LibrarianController extends ControllerBase {
+class LibrarianController extends ControllerBase
+{
 	/**
 	 * Receive an ISBN for a book, and return the book's information
 	 * 
 	 * @return JsonResponse
 	 */
-	public function lookupISBN() : JsonResponse {
+	public function lookupISBN(): JsonResponse {
 		$param = \Drupal::request()->query->all();
 		$isbn = $param['isbn'];
 
@@ -22,7 +23,7 @@ class LibrarianController extends ControllerBase {
 			$this->saveNewBookInfo($bookInfo);
 			$bookInfo = $this->getExistingBook($isbn);
 		}
-		
+
 		$return_fields = ['nid', 'title', 'body', 'field_isbn', 'field_publication_year'];
 
 
@@ -32,13 +33,13 @@ class LibrarianController extends ControllerBase {
 
 		if ($bookInfo['field_cover_image']) {
 			$file = \Drupal\file\Entity\File::load($bookInfo['field_cover_image'][0]['target_id']);
-  			$returnInfo['cover'] = \Drupal::service('file_url_generator')->generateString($file->getFileUri());
+			$returnInfo['cover'] = \Drupal::service('file_url_generator')->generateString($file->getFileUri());
 		} else {
 			$returnInfo['cover'] = '';
 		}
 
 		$returnInfo['authors'] = $bookInfo['field_authors']
-			? array_map(function($author) {
+			? array_map(function ($author) {
 				return $author['value'];
 			}, $bookInfo['field_authors'])
 			: [];
@@ -52,6 +53,21 @@ class LibrarianController extends ControllerBase {
 		]);
 	}
 
+	public function getLibraryInfo() : JsonResponse {
+		$view = \Drupal::entityTypeManager()
+			->getStorage('view')
+			->load('all_books')
+			->getExecutable();
+
+		// Get the NID from the View result.
+		$view->initDisplay();
+		$view->setDisplay('Page');
+		$view->execute();
+		$result = $view->result;
+
+		return new JsonResponse($result);
+	}
+
 	/**
 	 * Go to an outside website to get book info if necessary
 	 * But first check to see if the book already exists
@@ -59,7 +75,8 @@ class LibrarianController extends ControllerBase {
 	 * @param string $isbn
 	 * @return array|array{authors: mixed, categories: mixed, coverImage: mixed, description: mixed, isbn: string, publication_year: mixed, raw_data: bool|string, subtitle: mixed, title: mixed|array{error: string}}
 	 */
-	private function lookupBookInfoGoogle(string $isbn) : array {
+	private function lookupBookInfoGoogle(string $isbn): array
+	{
 		$result = [];
 
 		$lookupURL = "https://www.googleapis.com/books/v1/volumes?q=isbn:$isbn";
@@ -78,7 +95,7 @@ class LibrarianController extends ControllerBase {
 				'authors' => $book['authors'],
 				'coverImage' => $book['imageLinks']['thumbnail'],
 				'categories' => $book['categories'],
-				'raw_data' => $rawResponse,			
+				'raw_data' => $rawResponse,
 			];
 		}
 
@@ -89,7 +106,8 @@ class LibrarianController extends ControllerBase {
 		return $result;
 	}
 
-	private function lookupBookInfoOpenLibrary(string $isbn) : array {
+	private function lookupBookInfoOpenLibrary(string $isbn): array
+	{
 		$result = [];
 
 		$lookupURL = "https://openlibrary.org/api/volumes/brief/isbn/$isbn.json";
@@ -99,9 +117,9 @@ class LibrarianController extends ControllerBase {
 
 		if (count($response) > 0) {
 			$book = array_pop($response['records']);
-	// dpr($book);
+			// dpr($book);
 			$details = $book['details']['details'];
-			$authors = array_map(function($author) {
+			$authors = array_map(function ($author) {
 				return $author['name'];
 			}, $book['data']['authors']);
 
@@ -112,7 +130,7 @@ class LibrarianController extends ControllerBase {
 				'publication_year' => $this->getPublicationYear($details['publish_date']),
 				'authors' => $authors,
 				'coverImage' => $book['data']['cover']['large'],
-				'raw_data' => $rawResponse,			
+				'raw_data' => $rawResponse,
 			];
 		}
 
@@ -120,14 +138,15 @@ class LibrarianController extends ControllerBase {
 			$result = ['error' => 'Book not found'];
 		}
 
-		return $result;		
+		return $result;
 	}
 
 	/**
 	 * Convert a date string into a year that the book was published (date strings may be in different formats)
 	 * @param mixed $pubDate
 	 */
-	private function getPublicationYear($pubDate) {
+	private function getPublicationYear($pubDate)
+	{
 		// Date is like "1975-04-22"
 		if (preg_match('/(\d\d\d\d)-\d\d-\d\d/', $pubDate, $matches)) {
 			return $matches[1];
@@ -146,20 +165,20 @@ class LibrarianController extends ControllerBase {
 	 * @param int $ownerID
 	 * @return void
 	 */
-	private function getOwnerBooks(int $ownerID) {
-		$entityTypeManager = $this->entityTypeManager();
-		$nodeStorage = $entityTypeManager->getStorage('node');
-		$query = $nodeStorage->getQuery()
+	private function getOwnerBooks(int $ownerID)
+	{
+		$query = \Drupal::entityQuery('node')
 			->accessCheck(true)
 			->condition('type', 'holding')
 			->condition('deleted', '0');
 		$nodeIDs = $query->execute();
-		$nodeIDs = array_map(function(\Drupal\node\NodeInterface $node) {
-			return $node->toArray();
+		$nodeIDs = array_map(
+			function (\Drupal\node\NodeInterface $node) {
+				return $node->toArray();
 			},
-			$nodeStorage->loadMultiple($nodeIDs)
+			Node::loadMultiple($nodeIDs)
 		);
-		
+
 	}
 
 	/**
@@ -168,13 +187,14 @@ class LibrarianController extends ControllerBase {
 	 * @param string $isbn
 	 * @return array
 	 */
-	private function getExistingBook(string $isbn) : array {
+	private function getExistingBook(string $isbn): array
+	{
 		$result = [];
 		// dpr($isbn);
 
 		$query = \Drupal::entityQuery('node')
 			->accessCheck(true)
-			->condition('type','book')
+			->condition('type', 'book')
 			->condition('field_isbn', $isbn);
 
 		$book_ids = $query->execute();
@@ -195,9 +215,10 @@ class LibrarianController extends ControllerBase {
 	 * @param array $bookInfo
 	 * @return void
 	 */
-	private function saveNewBookInfo(array $bookInfo) : void {
-		dpr("SaVING");
-		dpr($bookInfo);
+	private function saveNewBookInfo(array $bookInfo): void
+	{
+		// dpr("SaVING");
+		// dpr($bookInfo);
 		$node = Node::create([
 			'type' => 'book',
 			'title' => $bookInfo['title'],
@@ -217,7 +238,44 @@ class LibrarianController extends ControllerBase {
 				'alt' => 'Book cover'
 			]);
 		}
+		$node->field_categories = $this->saveCategories($bookInfo['categories']);
+
 		$node->save();
+	}
+
+	/**
+	 * Save any categories that are new
+	 * 
+	 * @param array $categories
+	 * @return array<int|mixed|string|null>
+	 */
+	private function saveCategories(array $categories): array {
+		$result = [];
+
+		foreach ($categories as $category) {
+			$query = \Drupal::entityQuery('taxonomy_term')
+				->accessCheck(true)
+				->condition('vid', "book_categories")
+				->condition('name', $category);
+			$tids = $query->execute();
+
+			if (count($tids) == 0) {
+				// We couldn't find the term, so add it
+				$new_term = \Drupal\taxonomy\Entity\Term::create([
+					'vid' => 'book_categories',
+					'name' => $category,
+				]);
+
+				$new_term->enforceIsNew();
+				$new_term->save();
+				$result[] = $new_term->id();
+			} else {
+				// Use the existing taxonomy term
+				$result[] = array_pop($tids);
+			}
+		}
+
+		return $result;
 	}
 
 	/**
@@ -226,7 +284,8 @@ class LibrarianController extends ControllerBase {
 	 * @param string $isbn
 	 * @param string $imageURL
 	 */
-	private function downloadImage(string $isbn, string $imageURL) {
+	private function downloadImage(string $isbn, string $imageURL)
+	{
 		$imageTarget = "public://covers/$isbn.jpg";
 
 		$imageData = file_get_contents($imageURL);
