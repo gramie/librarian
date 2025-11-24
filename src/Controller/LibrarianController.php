@@ -53,19 +53,170 @@ class LibrarianController extends ControllerBase
 		]);
 	}
 
+	/**
+	 * Get all the library information
+	 * 
+	 * @return JsonResponse
+	 */
 	public function getLibraryInfo() : JsonResponse {
-		$view = \Drupal::entityTypeManager()
-			->getStorage('view')
-			->load('all_books')
-			->getExecutable();
-
-		// Get the NID from the View result.
-		$view->initDisplay();
-		$view->setDisplay('Page');
-		$view->execute();
-		$result = $view->result;
+		$result = [
+			'books' => $this->getAllBookInfo(),
+			'users' => $this->getAllPatronInfo(),
+		];
 
 		return new JsonResponse($result);
+	}
+
+	/**
+	 * Get information about books in this librarian community
+	 * 
+	 * @return array
+	 */
+	private function getAllBookInfo() : array {
+		$result = [];
+
+		$database = \Drupal::database();
+		$query = $database->select('node', 'n');
+		$query->join('node_field_data', 'nfd', 'n.nid=nfd.nid AND nfd.status=:status', [':status' => 1]);
+		$query->condition('n.type', 'book')
+				->fields('nfd', ['title', 'created'])
+				->orderBy('nfd.title');
+		$query->addField('n', 'nid', 'book_id');
+
+		$books = $query->execute()->fetchAll();
+		foreach ($books as $book) {
+			$result[$book->book_id] = $book;
+			unset($book->book_id);
+		}
+		// dpr($query->__toString());
+		$this->addAuthors($result);
+		$this->addHoldingInfo($result);
+
+		return $result;
+	}
+
+	/**
+	 * Get the Holdings and add them to the list of Books
+	 *
+	 * @param array $books
+	 * @return void
+	 */
+	private function addHoldingInfo(array $books) : void {
+		$database = \Drupal::database();
+		$query = $database->select('node', 'n');
+		$query->condition('n.type', 'holding');
+		$query->join('node__field_holding_book','nfhb','n.nid=nfhb.entity_id'); 
+		$query->join('node__field_owner','nfo','nfhb.entity_id=nfo.entity_id');
+		$query->join('node__field_available', 'nfa','nfhb.entity_id=nfa.entity_id');
+		$query->addField('n', 'nid', 'holding_id');
+		$query->addField('nfhb', 'field_holding_book_target_id', 'book_id');
+		$query->addField('nfo', 'field_owner_target_id', 'owner_id');
+		$query->addField('nfa', 'field_available_value', 'is_available');
+
+		$holdings = $query->execute()->fetchAll();
+		$this->addLoanInfo($holdings);
+	
+		foreach ($holdings as $holding) {
+			if (array_key_exists($holding->book_id, $books)) {
+				if (!isset($books[$holding->book_id]->holdings)) {
+					$books[$holding->book_id]->holdings = [];
+				}	
+				$books[$holding->book_id]->holdings[$holding->holding_id] = $holding;
+				unset($holding->holding_id);
+				unset($holding->book_id);
+			}
+		}
+		// dpr($query->__toString());
+	}
+
+	/**
+	 * Get information about Patron users
+	 * 
+	 * @return array
+	 */
+	private function getAllPatronInfo() : array {
+		$result = [];
+
+		$database = \Drupal::database();
+		$query = $database->select('users', 'u');
+		$query->addField('u', 'uid');
+
+		$query->join('user__field_first_name', 'uffn', 'u.uid=uffn.entity_id');
+		$query->addField('uffn', 'field_first_name_value', 'firstname');
+
+		$query->join('user__field_last_name', 'ufln', 'u.uid=ufln.entity_id');
+		$query->addField('ufln', 'field_last_name_value', 'lastname');
+		$users = $query->execute()->fetchAll();
+		foreach ($users as $user) {
+			$result[$user->uid] = $user;
+			unset($user->uid);
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Get the Holdings and add them to the books
+	 * 
+	 * @param array $holdings
+	 * @return void
+	 */
+	private function addLoanInfo(array $holdings) : void {
+		$database = \Drupal::database();
+		$query = $database->select('node', 'n');
+		$query->condition('n.type', 'loan');
+		$query->addField('n', 'nid', 'loan_id');
+
+		$query->join('node__field_loan_status', 'nfls', 'n.nid=nfls.entity_id');
+		$query->join('node__field_holding', 'nfh', 'n.nid=nfh.entity_id');
+		$query->addField('nfls', 'field_loan_status_value', '');
+		$query->addField('nfh', 'field_holding_target_id', 'holding_id');
+
+		$loans = $query->execute()->fetchAll();
+		// dpr($loans);
+		foreach ($loans as $loan) {
+			foreach ($holdings as $holding) {
+				if ($holding->holding_id == $loan->holding_id) {
+					// dpr("Found holding");
+					// dpr($holding);
+					$holding->loans = [$loan->loan_id => $loan];
+					unset($loan->loan_id);
+					unset($loan->holding_id);
+				} else {
+					// dpr("Can't find " . $loan->holding_id);
+					// dpr($holdings);
+				}
+				unset($loan->load_id);
+			}
+
+		}
+	}
+
+	/**
+	 * Add Authors to the Books
+	 * 
+	 * @param mixed $books
+	 * @return array
+	 */
+	private function addAuthors($books) : array {
+		$database = \Drupal::database();
+		$query = $database->select('node__field_authors', 'nfa');
+		$query->addField('nfa', 'entity_id', 'book_id');
+		$query->addField('nfa', 'field_authors_value', 'author_name');
+		$query->orderBy('book_id');
+		$query->orderBy('delta');
+// dpr($books);
+		$result = [];
+		foreach ($query->execute()->fetchAll() as $author) {
+			$bookID = $author->book_id;
+			if (isset($books[$bookID]->authors)) {
+				$books[$bookID]->authors[] = $author->author_name;
+			} else {
+				$books[$bookID]->authors = [$author->author_name];
+			}
+		}
+
+		return $result;
 	}
 
 	/**
@@ -106,6 +257,12 @@ class LibrarianController extends ControllerBase
 		return $result;
 	}
 
+	/**
+	 * Take an ISBN and look up its information in the Open Library
+	 *
+	 * @param string $isbn
+	 * @return array|array{authors: array, coverImage: mixed, description: mixed, isbn: string, publication_year: mixed, raw_data: bool|string, title: mixed|array{error: string}}
+	 */
 	private function lookupBookInfoOpenLibrary(string $isbn): array
 	{
 		$result = [];
