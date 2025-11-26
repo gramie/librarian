@@ -6,3 +6,13 @@ librarian:
     js/barcode.js: {}
   dependencies:
     - core/jquery
+
+browse-library:
+  js:
+    js/datatables.min.js: {}
+    js/browse-library.js: {}
+  css:
+    theme:
+      css/datatables.min.css: {}
+  dependencies:
+    - core/jquery

@@ -67,6 +67,32 @@ class LibrarianController extends ControllerBase
 		return new JsonResponse($result);
 	}
 
+	public function requestHolding() : JsonResponse {
+		$result = [];
+
+		$param = \Drupal::request()->query->all();
+		if ($this->userCanRequestHolding($param['holding_id'] ?: 0)) {
+			$result = ['status' => 'success', 'message' => 'Your request was accepted'];
+		}
+
+		return new JsonResponse($result);
+	}
+
+	private function userCanRequestHolding(int $holdingID) : bool {
+		$result = true;
+
+		$holding = Node::load($holdingID);
+		if (!$holding->field_available->value) {
+			dpr("Holding is not available");
+			return false;
+		}
+		if ($holding->field_owner->target_id == \Drupal::currentUser()->id()) {
+			return false;
+		}
+
+		return $result;
+	}
+
 	/**
 	 * Get information about books in this librarian community
 	 * 
@@ -78,13 +104,31 @@ class LibrarianController extends ControllerBase
 		$database = \Drupal::database();
 		$query = $database->select('node', 'n');
 		$query->join('node_field_data', 'nfd', 'n.nid=nfd.nid AND nfd.status=:status', [':status' => 1]);
-		$query->condition('n.type', 'book')
-				->fields('nfd', ['title', 'created'])
-				->orderBy('nfd.title');
+		$query->join('node__body','nb','n.nid=nb.entity_id');
+		$query->leftJoin('node__field_subtitle','nfs','n.nid=nfs.entity_id');
+		$query->leftJoin('node__field_categories','nfc','n.nid=nfc.entity_id');
+		$query->join('taxonomy_term_field_data', 'ttfd', 'nfc.field_categories_target_id=ttfd.tid');
+		$query->leftJoin('node__field_cover_image', 'nfci', 'n.nid=nfci.entity_id');
+		$query->condition('n.type', 'book');
+		$query->orderBy('nfd.title');
+
 		$query->addField('n', 'nid', 'book_id');
+		$query->addField('nfd', 'title');
+		$query->addField('nb','body_value','description');
+		$query->addField('nfs','field_subtitle_value','subtitle');
+		$query->addField('ttfd','name','category');
+		$query->addField('nfci','field_cover_image_target_id','cover_fid');
 
 		$books = $query->execute()->fetchAll();
 		foreach ($books as $book) {
+			if ($book->cover_fid) {
+				$cover_image = \Drupal\file\Entity\File::load($book->cover_fid);
+				$relative_url = $cover_image->getFileUri();
+				$book->cover_url = \Drupal::service('file_url_generator')->generate($relative_url)->toString();
+				unset($book->cover_fid);
+			} else {
+				$book->cover_url = '';
+			}
 			$result[$book->book_id] = $book;
 			unset($book->book_id);
 		}
@@ -92,7 +136,11 @@ class LibrarianController extends ControllerBase
 		$this->addAuthors($result);
 		$this->addHoldingInfo($result);
 
-		return $result;
+		foreach ($result as $id => $book) {
+			$book->book_id = $id;
+		}
+
+		return array_values($result);
 	}
 
 	/**
@@ -105,9 +153,11 @@ class LibrarianController extends ControllerBase
 		$database = \Drupal::database();
 		$query = $database->select('node', 'n');
 		$query->condition('n.type', 'holding');
+		$query->join('node_field_data', 'nfd', 'n.nid=nfd.nid AND nfd.status=:status', [':status' => 1]);
 		$query->join('node__field_holding_book','nfhb','n.nid=nfhb.entity_id'); 
 		$query->join('node__field_owner','nfo','nfhb.entity_id=nfo.entity_id');
 		$query->join('node__field_available', 'nfa','nfhb.entity_id=nfa.entity_id');
+		$query->addField('nfd', 'created', 'added_date');
 		$query->addField('n', 'nid', 'holding_id');
 		$query->addField('nfhb', 'field_holding_book_target_id', 'book_id');
 		$query->addField('nfo', 'field_owner_target_id', 'owner_id');
@@ -120,13 +170,23 @@ class LibrarianController extends ControllerBase
 			if (array_key_exists($holding->book_id, $books)) {
 				if (!isset($books[$holding->book_id]->holdings)) {
 					$books[$holding->book_id]->holdings = [];
-				}	
+				}
+
+				// Modify fields for formatting, etc.
+				$holding->added_date = date('Y-m-d', $holding->added_date);
+				$holding->is_owner = $this->userIsOwner($holding);
+				$holding->is_available = $holding->is_available && !$holding->is_owner;
+
 				$books[$holding->book_id]->holdings[$holding->holding_id] = $holding;
 				unset($holding->holding_id);
 				unset($holding->book_id);
 			}
 		}
 		// dpr($query->__toString());
+	}
+
+	private function userIsOwner(Object $holding) : bool {
+		return $holding->owner_id == \Drupal::currentUser()->id();
 	}
 
 	/**
@@ -174,19 +234,18 @@ class LibrarianController extends ControllerBase
 
 		$loans = $query->execute()->fetchAll();
 		// dpr($loans);
+		// dpr($holdings);
 		foreach ($loans as $loan) {
 			foreach ($holdings as $holding) {
+				// dpr($holding->holding_id . ' - ' . $loan->holding_id);
 				if ($holding->holding_id == $loan->holding_id) {
 					// dpr("Found holding");
 					// dpr($holding);
 					$holding->loans = [$loan->loan_id => $loan];
-					unset($loan->loan_id);
-					unset($loan->holding_id);
 				} else {
 					// dpr("Can't find " . $loan->holding_id);
 					// dpr($holdings);
 				}
-				unset($loan->load_id);
 			}
 
 		}

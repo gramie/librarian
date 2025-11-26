@@ -19,3 +19,10 @@ librarian.import_form:
     _title: Import ISBNs
   requirements:
     _access: 'TRUE'
+
+librarian.request_holding:
+  path: /request-holding
+  defaults:
+    _controller: Drupal\librarian\Controller\LibrarianController::requestHolding
+  requirements:
+    _access: 'TRUE'

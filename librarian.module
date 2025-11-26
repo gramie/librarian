@@ -24,6 +24,13 @@ function librarian_entity_presave(\Drupal\Core\Entity\EntityInterface $entity) {
 	}
 }
 
+function librarian_preprocess_page(array &$variables) : void {
+	if ($variables['is_front']) {
+		$variables['#attached']['library'][] = 'librarian/browse-library';
+
+	}
+}
+
 function _librarian_download_image(\Drupal\Core\Entity\EntityInterface $entity, string $imageURL) {
 	$isbn = $entity->get('field_isbn')->value;
 	$imageTarget = "public://covers/$isbn.jpg";
