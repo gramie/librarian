@@ -16,33 +16,20 @@ class LibrarianController extends ControllerBase
 		$param = \Drupal::request()->query->all();
 		$isbn = $param['isbn'];
 
-		$bookInfo = $this->getExistingBook($isbn);
+		$returnInfo = $this->getBookInfoFromISBN($isbn);
 
-		if (!$bookInfo) {
-			$bookInfo = $this->lookupBookInfoGoogle($isbn);
-			$this->saveNewBookInfo($bookInfo);
-			$bookInfo = $this->getExistingBook($isbn);
-		}
+		return new JsonResponse([
+			'data' => [
+				'info' => $returnInfo,
+			],
+			'method' => 'GET',
+			'status' => 200
+		]);
+	}
 
-		$return_fields = ['nid', 'title', 'body', 'field_isbn', 'field_publication_year'];
-
-
-		foreach ($return_fields as $fieldName) {
-			$returnInfo[$fieldName] = $bookInfo[$fieldName][0]['value'];
-		}
-
-		if ($bookInfo['field_cover_image']) {
-			$file = \Drupal\file\Entity\File::load($bookInfo['field_cover_image'][0]['target_id']);
-			$returnInfo['cover'] = \Drupal::service('file_url_generator')->generateString($file->getFileUri());
-		} else {
-			$returnInfo['cover'] = '';
-		}
-
-		$returnInfo['authors'] = $bookInfo['field_authors']
-			? array_map(function ($author) {
-				return $author['value'];
-			}, $bookInfo['field_authors'])
-			: [];
+	public function getBorrowings(): JsonResponse {
+		$currentUser = \Drupal::currentUser()->id();
+		$returnInfo = $this->getUserBorrowings($currentUser);
 
 		return new JsonResponse([
 			'data' => [
@@ -77,6 +64,41 @@ class LibrarianController extends ControllerBase
 
 		return new JsonResponse($result);
 	}
+
+	private function getBookInfoFromISBN(string $isbn) :array  {
+		$result = [];
+
+		$bookInfo = $this->getExistingBook($isbn);
+
+		if (!$bookInfo) {
+			$bookInfo = $this->lookupBookInfoGoogle($isbn);
+			$this->saveNewBookInfo($bookInfo);
+			$bookInfo = $this->getExistingBook($isbn);
+		}
+
+		$return_fields = ['nid', 'title', 'body', 'field_isbn', 'field_publication_year'];
+
+
+		foreach ($return_fields as $fieldName) {
+			$result[$fieldName] = $bookInfo[$fieldName][0]['value'];
+		}
+
+		if ($bookInfo['field_cover_image']) {
+			$file = \Drupal\file\Entity\File::load($bookInfo['field_cover_image'][0]['target_id']);
+			$result['cover'] = \Drupal::service('file_url_generator')->generateString($file->getFileUri());
+		} else {
+			$result['cover'] = '';
+		}
+
+		$result['authors'] = $bookInfo['field_authors']
+			? array_map(function ($author) {
+				return $author['value'];
+			}, $bookInfo['field_authors'])
+			: [];
+
+		return $result;
+	}
+
 
 	private function userCanRequestHolding(int $holdingID) : bool {
 		$result = true;
@@ -508,5 +530,35 @@ class LibrarianController extends ControllerBase
 		$imageObject = \Drupal::service('file.repository')->writeData($imageData, $imageTarget);
 
 		return $imageObject->id();
+	}
+
+	private function getUserBorrowings(int $userId): array {
+		$result = [];
+		$userID = 3;
+
+		$database = \Drupal::database();
+		// Get Loan node
+		$query = $database->select('node', 'loan');
+		$query->condition('loan.type', 'loan');
+		$query->join('node__field_holding', 'field_holding', 'loan.nid=field_holding.entity_id');
+		$query->join('node__field_loan_status', 'loan_status', 'loan.nid=loan_status.entity_id');
+		$query->join('node__field_requester', 'requester', 'loan.nid=requester.entity_id');
+		$query->condition('field_requester_target_id', $userId);
+
+		// Get Holding node
+		$query->join('node', 'holding', 'field_holding.field_holding_target_id=holding.nid');
+		// Get Book node
+		$query->join('node__field_holding_book', 'holding_book', 'holding.nid=holding_book.entity_id');
+
+		// Get Owner User
+		$query->join('node__field_owner', 'owner', 'holding.nid=owner.entity_id');
+		
+		
+		$query->addField('loan_status', 'field_loan_status_value', 'status');
+		$query->addField('holding_book', 'field_holding_book_target_id', 'book_id');
+dpr($query->__toString());
+		$rows = $query->execute()->fetchAll();
+dpr($rows);
+		return $result;
 	}
 }

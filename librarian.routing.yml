@@ -26,3 +26,10 @@ librarian.request_holding:
     _controller: Drupal\librarian\Controller\LibrarianController::requestHolding
   requirements:
     _access: 'TRUE'
+
+librarian.get_user_borrowings:
+  path: /get-borrowings
+  defaults:
+    _controller: Drupal\librarian\Controller\LibrarianController::getBorrowings
+  requirements:
+    _access: 'TRUE'
