@@ -27,6 +27,11 @@ class LibrarianController extends ControllerBase
 		]);
 	}
 
+	/**
+	 * Submit a request to get a list of all Holdings borrowed by the current user
+	 * 
+	 * @return JsonResponse
+	 */
 	public function getBorrowings(): JsonResponse {
 		$currentUser = \Drupal::currentUser()->id();
 		$returnInfo = $this->getUserBorrowings($currentUser);
@@ -54,6 +59,11 @@ class LibrarianController extends ControllerBase
 		return new JsonResponse($result);
 	}
 
+	/**
+	 * Submit a request to borrow a Holding
+	 * 
+	 * @return JsonResponse
+	 */
 	public function requestHolding() : JsonResponse {
 		$result = [];
 
@@ -65,6 +75,13 @@ class LibrarianController extends ControllerBase
 		return new JsonResponse($result);
 	}
 
+	/**
+	 * Given an ISBN, look up the information for the book, and add it to the table of known books
+	 * Also download the cover image associated with the book and save it in the filesystem
+	 * 
+	 * @param string $isbn
+	 * @return array
+	 */
 	private function getBookInfoFromISBN(string $isbn) :array  {
 		$result = [];
 
@@ -99,7 +116,13 @@ class LibrarianController extends ControllerBase
 		return $result;
 	}
 
-
+	/**
+	 * Determine whether the current user can request a Holding
+	 * - No if the current user is the owner of the Holding
+	 * - No if the Holding is marked "not available"
+	 * @param int $holdingID
+	 * @return bool
+	 */
 	private function userCanRequestHolding(int $holdingID) : bool {
 		$result = true;
 
@@ -532,6 +555,12 @@ class LibrarianController extends ControllerBase
 		return $imageObject->id();
 	}
 
+	/**
+	 * Get an array of all the books/holdings that this user has borrowed
+	 * 
+	 * @param int $userId
+	 * @return array
+	 */
 	private function getUserBorrowings(int $userId): array {
 		$result = [];
 		$userID = 3;
