@@ -31,5 +31,8 @@ librarian.get_user_borrowings:
   path: /get-borrowings
   defaults:
     _controller: Drupal\librarian\Controller\LibrarianController::getBorrowings
+    _title: 'My Borrowings'
   requirements:
     _access: 'TRUE'
+  options:
+    no_cache: 'TRUE'

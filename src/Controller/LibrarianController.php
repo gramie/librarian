@@ -32,17 +32,12 @@ class LibrarianController extends ControllerBase
 	 * 
 	 * @return JsonResponse
 	 */
-	public function getBorrowings(): JsonResponse {
+	public function getBorrowings(): array {
 		$currentUser = \Drupal::currentUser()->id();
 		$returnInfo = $this->getUserBorrowings($currentUser);
 
-		return new JsonResponse([
-			'data' => [
-				'info' => $returnInfo,
-			],
-			'method' => 'GET',
-			'status' => 200
-		]);
+		// dpr($returnInfo);
+		return $returnInfo;
 	}
 
 	/**
@@ -562,9 +557,6 @@ class LibrarianController extends ControllerBase
 	 * @return array
 	 */
 	private function getUserBorrowings(int $userId): array {
-		$result = [];
-		$userID = 3;
-
 		$database = \Drupal::database();
 		// Get Loan node
 		$query = $database->select('node', 'loan');
@@ -572,22 +564,65 @@ class LibrarianController extends ControllerBase
 		$query->join('node__field_holding', 'field_holding', 'loan.nid=field_holding.entity_id');
 		$query->join('node__field_loan_status', 'loan_status', 'loan.nid=loan_status.entity_id');
 		$query->join('node__field_requester', 'requester', 'loan.nid=requester.entity_id');
+		$query->leftJoin('node__field_loan_date', 'loan_date', 'loan.nid=loan_date.entity_id');
+		$query->leftJoin('node__field_return_date', 'return_date', 'loan.nid=return_date.entity_id');
 		$query->condition('field_requester_target_id', $userId);
 
 		// Get Holding node
 		$query->join('node', 'holding', 'field_holding.field_holding_target_id=holding.nid');
 		// Get Book node
 		$query->join('node__field_holding_book', 'holding_book', 'holding.nid=holding_book.entity_id');
+		$query->join('node_field_data', 'book_data', 'holding_book.field_holding_book_target_id = book_data.nid');
 
 		// Get Owner User
 		$query->join('node__field_owner', 'owner', 'holding.nid=owner.entity_id');
+		$query->join('users', 'users', 'owner.field_owner_target_id = users.uid');
+		$query->leftJoin('user__field_last_name', 'last_name', 'users.uid = last_name.entity_id');
+		$query->leftJoin('user__field_first_name', 'first_name', 'users.uid = first_name.entity_id');
 		
-		
+		// Select fields
+		$query->addField('holding', 'nid', 'holding_id');
 		$query->addField('loan_status', 'field_loan_status_value', 'status');
+		$query->addField('loan_date', 'field_loan_date_value', 'loan_date_value');
+		$query->addField('return_date', 'field_return_date_value', 'return_date_value');
 		$query->addField('holding_book', 'field_holding_book_target_id', 'book_id');
-dpr($query->__toString());
+		$query->addField('book_data', 'title');
+		$query->addField('last_name', 'field_last_name_value', 'owner_last_name');
+		$query->addField('first_name', 'field_first_name_value', 'owner_first_name');
 		$rows = $query->execute()->fetchAll();
-dpr($rows);
+
+		return $this->renderUserBorrowings($rows, $userId);
+	}
+
+	private function renderUserBorrowings(array $borrowings, int $uid) : array {
+		$result = [
+			'#theme' => 'table',
+			'#attributes' => ['id' => 'borrowings-table'],
+			'#header' => [
+				['data' => 'Title'],
+				['data' => 'Owner'],
+				['data'=> 'Borrowed'],
+				['data'=> 'Returned'],
+				['data' => 'Status'],
+			],
+			'#rows' => array_map(function($borrowing) {
+				return $this->renderSingleBorrowing($borrowing);
+			}, $borrowings),
+		];
+
+		return $result;
+	}
+	
+	private function renderSingleBorrowing($borrowing) : array {
+		$result = [
+			['data' => $borrowing->title],
+			['data' => $borrowing->owner_first_name . ' ' . $borrowing->owner_last_name],
+			['data' => $borrowing->loan_date_value],
+			['data' => $borrowing->return_date_value],
+			['data' => $borrowing->book_id],
+			['data' => $borrowing->status],
+		];
+
 		return $result;
 	}
 }
