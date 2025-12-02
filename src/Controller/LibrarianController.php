@@ -28,8 +28,12 @@ class LibrarianController extends ControllerBase
 	}
 
 	public function borrowingPage(): array {
+		$tables = '<h2>Active</h2>'
+				. '<table id="borrowing-table-active"><thead></thead><tbody></tbody></table>'
+				. '<h2>Completed</h2>'
+				. '<table id="borrowing-table-completed"><thead></thead><tbody></tbody></table>';
 		$result = [
-			'#markup' => '<table id="borrowing-table"><thead></thead><tbody></tbody></table>',
+			'#markup' => $tables,
 		];
 		$result['#attached']['library'][] = 'librarian/library-loans';
 
@@ -50,8 +54,13 @@ class LibrarianController extends ControllerBase
 	}
 
 	public function lendingPage(): array {
+		$tables = '<h2>Active</h2>'
+				. '<table id="lending-table-active"><thead></thead><tbody></tbody></table>'
+
+				. '<h2>Completed</h2>'
+				. '<table id="lending-table-completed"><thead></thead><tbody></tbody></table>';
 		$result = [
-			'#markup' => '<table id="lending-table"><thead></thead><tbody></tbody></table>',
+			'#markup' => $tables,
 		];
 		$result['#attached']['library'][] = 'librarian/library-loans';
 
