@@ -31,8 +31,34 @@ librarian.get_user_borrowings:
   path: /get-borrowings
   defaults:
     _controller: Drupal\librarian\Controller\LibrarianController::getBorrowings
-    _title: 'My Borrowings'
+    _title: 'Borrowing'
   requirements:
     _access: 'TRUE'
   options:
     no_cache: 'TRUE'
+
+librarian.get_user_lendings:
+  path: /get-lendings
+  defaults:
+    _controller: Drupal\librarian\Controller\LibrarianController::getLendings
+    _title: 'Lending'
+  requirements:
+    _access: 'TRUE'
+  options:
+    no_cache: 'TRUE'
+
+librarian.get_borrowing_page:
+  path: /get-borrowing-page
+  defaults:
+    _controller: Drupal\librarian\Controller\LibrarianController::borrowingPage
+    _title: 'Borrowing'
+  requirements:
+    _access: 'TRUE'
+
+librarian.get_lending_page:
+  path: /get-lending-page
+  defaults:
+    _controller: Drupal\librarian\Controller\LibrarianController::lendingPage
+    _title: 'Lending'
+  requirements:
+    _access: 'TRUE'

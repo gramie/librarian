@@ -16,3 +16,12 @@ browse-library:
       css/datatables.min.css: {}
   dependencies:
     - core/jquery
+
+library-loans:
+  js:
+    js/loans.js: {}
+    js/datatables.min.js: {}
+    js/browse-library.js: {}
+  css:
+    theme:
+      css/datatables.min.css: {}
