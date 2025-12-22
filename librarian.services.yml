@@ -1,0 +1,3 @@
+services:
+    librarian_service.loan:
+        class: Drupal\librarian\Services\LoanService

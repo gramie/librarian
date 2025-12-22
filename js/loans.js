@@ -1,8 +1,9 @@
+// Global object
 let loanData;
 
-jQuery(document).ready(function() {
-    
-    jQuery('table#book-listing').on('click', '.request-holding', function() {
+jQuery(document).ready(function () {
+
+    jQuery('table#book-listing').on('click', '.request-holding', function () {
         alert('requesting holding');
     });
 
@@ -22,17 +23,15 @@ function loadLoanTable(loanDirection) {
         jQuery.ajax({
             url: '/get-' + loanDirection + 's',
             context: document.body
-        }).done(function(data) {
+        }).done(function (data) {
             loanData = data;
-            console.log(data);
             const fields = [];
             for (const fieldName in data.visibleFields) {
-                fields.push({ data: fieldName, title : data.visibleFields[fieldName] });
+                fields.push({ data: fieldName, title: data.visibleFields[fieldName] });
             }
             fields.push({ data: 'actions', title: 'Actions' });
             addActions(data.data);
             data.loansByStatus = separateLoans(data.data);
-            console.log(data.loansByStatus);
             table.dataTable({
                 columns: fields,
                 data: data.loansByStatus.active,
@@ -46,19 +45,47 @@ function loadLoanTable(loanDirection) {
 }
 
 
+/**
+ * Add action buttons for each Loan
+ * 
+ * @param {array} data 
+ */
 function addActions(data) {
     for (const loan of data) {
         if (isActiveLoan(loan.status)) {
             const actions = [];
             loan.actions = [];
             if (loan.borrower_name) {
-                actions.push('Lend');
-                actions.push('Refuse');
+                // The user looking at his lending page
+                switch (loan.status) {
+                    case 'pending':
+                        actions.push('Lend');
+                        actions.push('Refuse');
+                        break;
+                    case 'lent_out':
+                        actions.push('Complete');
+                        break;
+                }
             } else {
-                actions.push('Cancel');
+                switch (loan.status) {
+                    case 'pending':
+                        actions.push('Cancel');
+                        break;
+                }
             }
 
-            loan.actions = actions.map(x => `<input type="button" class="${x.toLowerCase()}-button" value="${x}" data-holding="${loan.holding_id}" />`).join('');
+            loan.actions = actions.map(x => `<input type="button" class="action-button ${x.toLowerCase()}-button" value="${x}" data-holding="${loan.id}" />`).join('');
+        } else {
+            const actions = [];
+            switch (loan.status) {
+                case 'complete':
+                    actions.push('Incomplete');
+                    break;
+                case 'not_returned':
+                    actions.push('Complete');
+                    break;
+            }
+            loan.actions = actions.map(x => `<input type="button" class="action-button ${x.toLowerCase()}-button" value="${x}" data-holding="${loan.id}" />`).join('');
         }
     }
 }
@@ -70,7 +97,7 @@ function addActions(data) {
  * @returns 
  */
 function separateLoans(loans) {
-    const result = { active: [], completed: []};
+    const result = { active: [], completed: [] };
 
     for (const loan of loans) {
         if (isActiveLoan(loan.status)) {
@@ -83,7 +110,22 @@ function separateLoans(loans) {
     return result;
 }
 
+/**
+ * Is the status considered Active or not?
+ * 
+ * @param {string} status 
+ * @returns 
+ */
 function isActiveLoan(status) {
     return ['pending', 'lent_out'].includes(status);
 }
 
+function requestAction(action, holding_id) {
+    jQuery.ajax({
+        url: '/loan-action',
+        data: { action: action, holding_id : holding_id },
+        context: document.body
+    }).done(function (data) {
+    
+    });
+}

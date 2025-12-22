@@ -52,11 +52,12 @@ jQuery.ajax('/get-library')
     .done(function(data) {
         const books = data.books.map(function(book) { 
             book.authors_joined = book.authors.join('; ');
-            for (const holding of Object.values(book.holdings)) {
-                const user = data.users[holding.owner_id];
-                holding.owner_name = user.firstname + ' ' + user.lastname;
-            }
-            
+            if (book.holdings) {
+                for (const holding of Object.values(book.holdings)) {
+                    const user = data.users[holding.owner_id];
+                    holding.owner_name = user.firstname + ' ' + user.lastname;
+                }
+            }            
             return book;
         });
         const libraryTable = new DataTable('#book-listing', {

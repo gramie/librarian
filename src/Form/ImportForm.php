@@ -97,6 +97,7 @@ class ImportForm extends FormBase
 	public function submitForm(array &$form, FormStateInterface $form_state)
 	{
 		$input = $form_state->getUserInput();
+		// dpr($form_state);
 		$booksToAdd = explode(',', $input['books_to_add']);
 
 		$bookNIDs = $this->getBookNIDs($booksToAdd);

@@ -62,3 +62,19 @@ librarian.get_lending_page:
     _title: 'Lending'
   requirements:
     _access: 'TRUE'
+
+librarian.loan_action:
+  path: /loan-action
+  defaults:
+    _controller: Drupal\librarian\Controller\LibrarianController::loanAction
+    _title: 'Loan Action'
+  requirements:
+    _access: 'TRUE'
+
+librarian.test:
+  path: /test
+  defaults:
+    _controller: Drupal\librarian\Controller\LibrarianController::test
+    _title: 'Test'
+  requirements:
+    _access: 'TRUE'
