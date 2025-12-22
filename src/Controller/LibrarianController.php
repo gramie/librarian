@@ -326,6 +326,13 @@ class LibrarianController extends ControllerBase
 	{
 		$result = [];
 
+		$s = \Drupal::service('librarian_service.loan');
+		$currentUserID = \Drupal::currentUser()->id();
+		$circleUsers = $s->getPeopleInUsersCircles($currentUserID);
+		if (count($circleUsers) === 0) {
+			$circleUsers = [0];
+		}
+
 		$database = \Drupal::database();
 		$query = $database->select('node', 'n');
 		$query->join('node_field_data', 'nfd', 'n.nid=nfd.nid AND nfd.status=:status', [':status' => 1]);
@@ -335,7 +342,11 @@ class LibrarianController extends ControllerBase
 		$query->join('taxonomy_term_field_data', 'ttfd', 'nfc.field_categories_target_id=ttfd.tid');
 		$query->leftJoin('node__field_cover_image', 'nfci', 'n.nid=nfci.entity_id');
 		$query->join('node__field_holding_book', 'holdings', 'n.nid=holdings.field_holding_book_target_id');
+		$query->join('node__field_owner', 'owner', 'holdings.entity_id=owner.entity_id');
 		$query->condition('n.type', 'book');
+		if (!\Drupal::currentUser()->hasRole('administrator')) {
+			$query->condition('field_owner_target_id', $circleUsers, 'IN');
+		}
 		$query->orderBy('nfd.title');
 
 		$query->addField('n', 'nid', 'book_id');
@@ -427,6 +438,8 @@ class LibrarianController extends ControllerBase
 	{
 		$result = [];
 
+		$s = \Drupal::service('librarian_service.loan');
+		
 		$database = \Drupal::database();
 		$query = $database->select('users', 'u');
 		$query->addField('u', 'uid');
@@ -436,6 +449,13 @@ class LibrarianController extends ControllerBase
 
 		$query->join('user__field_last_name', 'ufln', 'u.uid=ufln.entity_id');
 		$query->addField('ufln', 'field_last_name_value', 'lastname');
+
+		// If user is NOT the administrator, limit users to people in their circles
+    	if (!\Drupal::currentUser()->hasRole('administrator')) {
+			$circlePeople = $s->getPeopleInUsersCircles(\Drupal::currentUser()->id());
+			$query->condition('u.uid', $circlePeople , 'IN');
+		}
+
 		$users = $query->execute()->fetchAll();
 		foreach ($users as $user) {
 			$result[$user->uid] = $user;

@@ -160,14 +160,16 @@ class LoanService
 		if (count($circleIDs) > 0) {
 			$database = \Drupal::database();
 			$query = $database->select('user__field_circles', 'ufc');
-			$query->condition('ufc.field_circles_target_id', $circleIDs, 'IN');
+			if (!\Drupal::currentUser()->hasRole('administrator')) {
+				$query->condition('ufc.field_circles_target_id', $circleIDs, 'IN');
+			}
 			$query->addField('ufc', 'entity_id', 'userID');
 
 			foreach ($query->execute()->fetchAll() as $row) {
 				$result[$row->userID] = true;
 			}
 		}
-		
+
 		return array_keys($result);
 	}
 
