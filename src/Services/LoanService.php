@@ -146,31 +146,35 @@ class LoanService
 	 */
 	public function getPeopleInUsersCircles(int $userID): array
 	{
-		$result = [];
+		$userIDs = [];
 
+		// If the userID is not a valid user, return nothing
 		$user = \Drupal\user\Entity\User::load($userID);
 		if (!$user) {
-			return $result;
+			return [];
 		}
 
 		$circleIDs = array_map(function ($circle) {
 			return $circle['target_id'];
 		}, $user->field_circles->getValue());
 
+		// It's possible that a user has no people in their circles
 		if (count($circleIDs) > 0) {
 			$database = \Drupal::database();
 			$query = $database->select('user__field_circles', 'ufc');
+			// Allow an administrator to see all users
 			if (!\Drupal::currentUser()->hasRole('administrator')) {
 				$query->condition('ufc.field_circles_target_id', $circleIDs, 'IN');
 			}
 			$query->addField('ufc', 'entity_id', 'userID');
 
+			// People can be in multiple circles, so remove duplicates
 			foreach ($query->execute()->fetchAll() as $row) {
-				$result[$row->userID] = true;
+				$userIDs[$row->userID] = true;
 			}
 		}
 
-		return array_keys($result);
+		return array_keys($userIDs);
 	}
 
 
