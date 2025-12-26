@@ -8,18 +8,16 @@ jQuery(document).ready(function() {
 function format(d) {
     // `d` is the original data object for the row
     let result = '<div class="book-details">';
-
     result += '  <div class="book-info">';
     result += '  <div class="book-text">'
+    result += `    <div class="book-cover"><img src="${d.cover_url}" alt="image of book cover" /></div>`;
+
     result += `    <div class="book-title">${d.title}</div>`;
     if (d.subtitle) {
         result += `    <div class="book-subtitle">${d.subtitle}</div>`;
     }
     result += `    <div class="book-description">${d.description}</div>`;
     result += '</div>';
-    if (d.cover_url) {
-        result += `    <div class="book-cover"><img src="${d.cover_url}" alt="image of book cover" /></div>`;
-    }
  
     result += '  </div>';
     

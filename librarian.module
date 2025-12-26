@@ -27,7 +27,6 @@ function librarian_entity_presave(\Drupal\Core\Entity\EntityInterface $entity) {
 function librarian_preprocess_page(array &$variables) : void {
 	if ($variables['is_front']) {
 		$variables['#attached']['library'][] = 'librarian/browse-library';
-
 	}
 }
 
