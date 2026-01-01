@@ -3,3 +3,5 @@ services:
         class: Drupal\librarian\Services\LoanService
     librarian_service.importbook:
         class: Drupal\librarian\Services\ImportBookService
+    librarian_service.library:
+        class: Drupal\librarian\Services\LibraryService

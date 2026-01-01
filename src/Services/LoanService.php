@@ -2,14 +2,26 @@
 
 namespace Drupal\librarian\Services;
 
+use Drupal\node\Entity\Node;
+use ErrorException;
+
 class LoanService
 {
+	const LOAN_STATUS_PENDING = 'Pending';
+	const LOAN_STATUS_CANCELLED_BY_BORROWER = 'Cancelled by borrower';
+	const LOAN_STATUS_CANCELLED_BY_LENDER = 'Cancelled by lender';
+	const LOAN_STATUS_COMPLETE = 'Complete';
+	const LOAN_STATUS_LENT_OUT = 'Lent out';
+	const LOAN_STATUS_NOT_RETURNED = 'Not returned';
+
 
 	protected $db = null;
+	protected $currentUserRoles = [];
 
 	public function __construct()
 	{
 		$this->db = \Drupal::database();
+		$this->currentUserRoles = \Drupal::currentUser()->getRoles();
 	}
 
 	/**
@@ -163,7 +175,7 @@ class LoanService
 			$database = \Drupal::database();
 			$query = $database->select('user__field_circles', 'ufc');
 			// Allow an administrator to see all users
-			if (!\Drupal::currentUser()->hasRole('administrator')) {
+			if (!in_array('administrator', $this->currentUserRoles)) {
 				$query->condition('ufc.field_circles_target_id', $circleIDs, 'IN');
 			}
 			$query->addField('ufc', 'entity_id', 'userID');
@@ -283,7 +295,7 @@ class LoanService
 		return $result;
 	}
 
-	private function createLoan(int $userID, int $holding_id) : string {
+	private function createLoan(int $userID, int $holding_id) : void {
 		$node = Node::create([
 			'type' => 'loan',
 			'title' => "Loan - $holding_id to $userID"
@@ -296,39 +308,48 @@ class LoanService
 		$node->save();
 	}
 
-	/**
-	 * Perform an action on a Loan
-	 * 
-	 * @return JsonResponse
-	 */
-	public function loanAction(): JsonResponse
-	{
+
+	public function getUserLibrary(int $userID) : array {
 		$result = [];
 
-		$param = \Drupal::request()->query->all();
-		$action = $param['action'];
-		$userID = \Drupal::currentUser()->id();
-		$loanID = $param['loan_id'];
+		$query = \Drupal::entityQuery('node')
+			->accessCheck(true)
+			->condition('type', 'holding')
+			->condition('field_borrower', $userID);
+		$holdingIDs = $query->execute();
+		// dpr($holdingIDs);
 
-		if ($action && $loanID) {
-			try {
-				$this->changeLoanStatus($userID, $loanID, $action);
-				$result['status'] = 'success';
-			} catch (\Exception $e) {
-				$result = [
-					'status' => 'error',
-					'message' => $e->getMessage(),
-				];
-			}
-		} else {
-			$result = [
-				'status' => 'error',
-				'message' => 'Invalid parameters',
-			];
+		if (count($holdingIDs) > 0) {
+			// dpr($holdingIDs);
+			$holdings = array_map(
+				function (\Drupal\node\NodeInterface $node) {
+					return $node->toArray();
+				},
+				Node::loadMultiple($holdingIDs)
+			);
+
+			// dpr($holdings);
+
+			$loans = $this->getHoldingLoans($holdingIDs);
 		}
-
-		return new JsonResponse($result);
+		return $result;
 	}
 
+	protected function getHoldingLoans(array $holdingIDs) : array {
+		$query = \Drupal::entityQuery('node')
+			->accessCheck(true)
+			->condition('type', 'loan')
+			->condition('field_holding', $holdingIDs, 'IN')
+			->condition('field_loan_status', ['Requested', 'Lent out', 'Lost'], 'IN');
+		$nodeIDs = $query->execute();
+		$nodes = array_map(
+			function (\Drupal\node\NodeInterface $node) {
+				return $node->toArray();
+			},
+			Node::loadMultiple($nodeIDs)
+		);
+
+		return $nodes;
+	}
 
 }

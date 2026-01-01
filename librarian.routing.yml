@@ -71,6 +71,14 @@ librarian.loan_action:
   requirements:
     _access: 'TRUE'
 
+librarian.user_library:
+  path: /get-user-library
+  defaults:
+    _controller: Drupal\librarian\Controller\LibrarianController::getUserLibrary
+    _title: 'User Library'
+  requirements:
+    _access: 'TRUE'
+
 librarian.test:
   path: /test
   defaults:
