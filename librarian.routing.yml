@@ -5,84 +5,10 @@ librarian.site_info:
   requirements:
     _access: 'TRUE'
 
-librarian.library_info:
-  path: /get-library
-  defaults:
-    _controller: Drupal\librarian\Controller\LibrarianController::getLibraryInfo
-  requirements:
-    _access: 'TRUE'
-
 librarian.import_form:
   path: /import-isbn
   defaults:
     _form: Drupal\librarian\Form\ImportForm
     _title: Import ISBNs
-  requirements:
-    _access: 'TRUE'
-
-librarian.request_holding:
-  path: /request-holding
-  defaults:
-    _controller: Drupal\librarian\Controller\LibrarianController::requestHolding
-  requirements:
-    _access: 'TRUE'
-
-librarian.get_user_borrowings:
-  path: /get-borrowings
-  defaults:
-    _controller: Drupal\librarian\Controller\LibrarianController::getBorrowings
-    _title: 'Borrowing'
-  requirements:
-    _access: 'TRUE'
-  options:
-    no_cache: 'TRUE'
-
-librarian.get_user_lendings:
-  path: /get-lendings
-  defaults:
-    _controller: Drupal\librarian\Controller\LibrarianController::getLendings
-    _title: 'Lending'
-  requirements:
-    _access: 'TRUE'
-  options:
-    no_cache: 'TRUE'
-
-librarian.get_borrowing_page:
-  path: /get-borrowing-page
-  defaults:
-    _controller: Drupal\librarian\Controller\LibrarianController::borrowingPage
-    _title: 'Borrowing'
-  requirements:
-    _access: 'TRUE'
-
-librarian.get_lending_page:
-  path: /get-lending-page
-  defaults:
-    _controller: Drupal\librarian\Controller\LibrarianController::lendingPage
-    _title: 'Lending'
-  requirements:
-    _access: 'TRUE'
-
-librarian.loan_action:
-  path: /loan-action
-  defaults:
-    _controller: Drupal\librarian\Controller\LibrarianController::loanAction
-    _title: 'Loan Action'
-  requirements:
-    _access: 'TRUE'
-
-librarian.user_library:
-  path: /get-user-library
-  defaults:
-    _controller: Drupal\librarian\Controller\LibrarianController::getUserLibrary
-    _title: 'User Library'
-  requirements:
-    _access: 'TRUE'
-
-librarian.test:
-  path: /test
-  defaults:
-    _controller: Drupal\librarian\Controller\LibrarianController::test
-    _title: 'Test'
   requirements:
     _access: 'TRUE'

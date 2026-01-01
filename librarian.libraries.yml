@@ -4,11 +4,6 @@ librarian:
     js/lookup_book.js: {}
     js/zxing.min.js: {}
     js/barcode.js: {}
-  dependencies:
-    - core/jquery
-
-browse-library:
-  js:
     js/datatables.min.js: {}
     js/browse-library.js: {}
   css:
@@ -17,12 +12,3 @@ browse-library:
       css/librarian.css: {}
   dependencies:
     - core/jquery
-
-library-loans:
-  js:
-    js/loans.js: {}
-    js/datatables.min.js: {}
-    js/browse-library.js: {}
-  css:
-    theme:
-      css/datatables.min.css: {}

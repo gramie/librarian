@@ -15,21 +15,6 @@ function librarian_form_alter(&$form, FormStateInterface $form_state, $form_id) 
 	}
 }
 
-function librarian_entity_presave(\Drupal\Core\Entity\EntityInterface $entity) {
-	if ($entity->bundle() === 'holding') {
-		// $imageURL = $entity->get('field_image_url')->value ?: '';
-		// if (str_starts_with($imageURL, 'https://covers.openlibrary.org')) {
-		//     _librarian_download_image($entity, $imageURL);
-		// }
-	}
-}
-
-function librarian_preprocess_page(array &$variables) : void {
-	if ($variables['is_front']) {
-		$variables['#attached']['library'][] = 'librarian/browse-library';
-	}
-}
-
 function _librarian_download_image(\Drupal\Core\Entity\EntityInterface $entity, string $imageURL) {
 	$isbn = $entity->get('field_isbn')->value;
 	$imageTarget = "public://covers/$isbn.jpg";

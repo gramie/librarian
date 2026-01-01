@@ -1,4 +1,4 @@
-name: Librarian
+name: ArchiveLibrarian
 type: module
-description: A module to manage holdings in a library
+description: A module to manage holdings in an archive's library
 core_version_requirement: '>=10'
