@@ -7,11 +7,27 @@ use Drupal\Core\File\FileSystemInterface;
  * Implements hook_form_alter
  */
 function librarian_form_alter(&$form, FormStateInterface $form_state, $form_id) {
-	if (in_array($form_id, ['node_holding_form', 'node_holding_edit_form'])) {
-	  $form['cover_image'] = [
-		'#type' => 'inline_template',
-		'#template' => '<img id="book-cover" src="" /><button id="lookup-isbn" type="button">Look up</button>',
-	  ];
+	if (in_array($form_id, ['node_book_form', 'node_book_edit_form'])) {
+		$form['#attached']['library'][] = 'librarian/librarian';
+		$form['field_isbn']['#suffix'] = '<span id="lookup-button">Lookup</span>';
+
+		$form['scanner'] = [
+			'#type' => 'inline_template',
+			'#template' => '<div>
+								<a class="button" id="startButton">Scan</a>
+								<a class="button" id="resetButton">Stop</a>
+							</div>
+
+							<div>
+								<video id="video" width="300" height="200" style="border: 1px solid gray"></video>
+							</div>
+
+							<div id="sourceSelectPanel" style="display:none">
+								<label for="sourceSelect">Change video source:</label>
+								<select id="sourceSelect" style="max-width:400px">
+								</select>
+							</div>',
+		];
 	}
 }
 

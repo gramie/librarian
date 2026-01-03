@@ -8,6 +8,7 @@ class ImportBookService
 {
 
 	protected $db = null;
+	protected $a = "yes";
 
 	public function __construct()
 	{
@@ -25,33 +26,13 @@ class ImportBookService
 	{
 		$result = [];
 
-		$bookInfo = $this->getExistingBook($isbn);
-
-		if (!$bookInfo) {
-			$bookInfo = $this->lookupBookInfoGoogle($isbn);
-			$this->saveNewBookInfo($bookInfo);
-			$bookInfo = $this->getExistingBook($isbn);
+		$bookInfo = $this->lookupBookInfoGoogle($isbn);
+		if (count($bookInfo) > 0) {
+			$return_fields = ['isbn', 'title', 'subtitle', 'description', 'publication_year', 'authors', 'coverImage', 'categories'];
+			foreach ($return_fields as $fieldName) {
+				$result[$fieldName] = $bookInfo[$fieldName];
+			}
 		}
-
-		$return_fields = ['nid', 'title', 'body', 'field_isbn', 'field_publication_year'];
-
-
-		foreach ($return_fields as $fieldName) {
-			$result[$fieldName] = $bookInfo[$fieldName][0]['value'];
-		}
-
-		if ($bookInfo['field_cover_image']) {
-			$file = \Drupal\file\Entity\File::load($bookInfo['field_cover_image'][0]['target_id']);
-			$result['cover'] = \Drupal::service('file_url_generator')->generateString($file->getFileUri());
-		} else {
-			$result['cover'] = '';
-		}
-
-		$result['authors'] = $bookInfo['field_authors']
-			? array_map(function ($author) {
-				return $author['value'];
-			}, $bookInfo['field_authors'])
-			: [];
 
 		return $result;
 	}
@@ -72,6 +53,10 @@ class ImportBookService
 		// dpr($lookupURL);
 		$rawResponse = file_get_contents($lookupURL);
 		$response = \Drupal\Component\Serialization\Json::decode($rawResponse);
+		if ($response['totalItems'] == 0) {
+			return $result;
+		}
+
 		if ($response['totalItems'] > 0) {
 			$book = $response['items'][0]['volumeInfo'];
 			$result = [
@@ -81,7 +66,7 @@ class ImportBookService
 				'subtitle' => $book['subtitle'] ?? '',
 				'description' => $book['description'] ?? '',
 				'publication_year' => $this->getPublicationYear($book['publishedDate']),
-				'authors' => $book['authors'],
+				'authors' => $this->processAuthorNames($book['authors']),
 				'coverImage' => $book['imageLinks']['thumbnail'],
 				'categories' => $book['categories'],
 				'raw_data' => $rawResponse,
@@ -93,6 +78,27 @@ class ImportBookService
 		}
 
 		return $result;
+	}
+
+	private function processAuthorNames(array $names) : array {
+		return array_map(function($name) {
+			$nameParts = explode(' ', $name);
+			switch (count($nameParts)) {
+				case 1:
+					return $nameParts[0];
+				case 2:
+					return [$nameParts[1], $nameParts[0]];
+				case 3:
+					if (in_array(strtolower($nameParts[1]), ['de', 'du', 'von', 'di'])) {
+						return [$nameParts[1] . ' ' . $nameParts[2], $nameParts[0]];
+					}
+				default:
+					$lastname = array_pop($nameParts);
+					$firstname = implode(' ', $nameParts);
+					return [$lastname, $firstname];
+			}
+
+		}, $names);
 	}
 
 	/**

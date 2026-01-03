@@ -1,50 +1,50 @@
-jQuery('#edit-isbn')
-	.keypress(function(event) {
+jQuery('document').ready(function () {
+	jQuery('#lookup-button')
+		.html('<input type="button" id="lookup-isbn" value="Lookup" />')
+		.click(function () {
+			lookupISBNValue();
+		});
+});
+
+jQuery('#edit-field-isbn-0-value')
+	.keypress(function (event) {
 		if (event.keyCode == 13) {
-			const isbnControl = jQuery(this);
-			// isbnControl.parent().append(Drupal.theme.ajaxProgressThrobber(Drupal.t('Loading...'));
-			processISBN(isbnControl.val())
+			lookupISBNValue();
 			event.preventDefault();
-			isbnControl.val('');
 		}
-	})
+	});
+
+function lookupISBNValue() {
+	const ISBNControl = jQuery('#edit-field-isbn-0-value');
+	processISBN(ISBNControl.val())
+}
 
 function processISBN(isbn) {
 	stopDuplicates = true;
 	jQuery.getJSON(drupalSettings.path.baseUrl + 'lookup-isbn/?isbn=' + isbn, function (result) {
-		const info = result.data.info;
-		jQuery('#pending-book-list tbody').append(
-			`<tr><td>${info.field_isbn}</td><td>${info.title}</td><td>${info.authors.join(', ')}</td></tr>`
-		);
-		const booksToAddControl = jQuery('input[name="books_to_add"]');
-		const booksToAddLength = booksToAddControl.val().length;
-		if (booksToAddControl.val().length > 0) {
-			booksToAddControl.val(booksToAddControl.val() + ',');
+		if (Object.keys(result).length > 0) {
+			fillFormWithLookupData(result);
 		}
-		booksToAddControl.val(booksToAddControl.val() + isbn);
-		// jQuery('.ajax-progress-throbber').remove();
 	});
 }
 
-function convertAuthorName(name) {
-	const nameParts = name.split(' ');
-	const firstName = nameParts.shift();
-	return nameParts.join(' ') + ', ' + firstName;
+function fillFormWithLookupData(data) {
+	const fields = {
+		title: 'edit-title-0-value',
+		subtitle: 'edit-field-subtitle-0-value',
+		publication_year: 'edit-field-publication-year-0-value',
+	}
+
+	for (const fieldName of Object.keys(fields)) {
+		const control = jQuery('#' + fields[fieldName]);
+		control.val(data[fieldName]);
+	}
+
+	for (const authorIdx in data.authors) {
+		jQuery('#edit-field-authors-' + authorIdx + '-value').val(data.authors[authorIdx].join(', '));
+	}
+
+	const editorKeys = Drupal.CKEditor5Instances.keys().toArray();
+	const editor = Drupal.CKEditor5Instances.get(editorKeys.shift());
+	editor.setData(data.description);
 }
-
-// (function (Drupal, once) {
-// 	Drupal.behaviors.my_module = {
-// 		attach: function (context) {
-
-// 			// Add the throbber to the body tag, but you can add it to any element.  
-// 			once('librarian', 'body').forEach((element) => {
-// 				element.insertAdjacentHTML('afterend', Drupal.theme.ajaxProgressThrobber(Drupal.t('Loading...')));
-
-// 				// Remove throbber after 5 seconds.
-// 				const throbber = document.querySelector('.ajax-progress-throbber');
-// 				setTimeout(() => throbber.remove(), 5000);
-// 			});
-// 		}
-// 	};
-// })(Drupal, once);
-

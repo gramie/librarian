@@ -5,7 +5,6 @@ librarian:
     js/zxing.min.js: {}
     js/barcode.js: {}
     js/datatables.min.js: {}
-    js/browse-library.js: {}
   css:
     theme:
       css/datatables.min.css: {}

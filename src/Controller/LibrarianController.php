@@ -19,15 +19,8 @@ class LibrarianController extends ControllerBase
 		$isbn = $param['isbn'];
 
 		$s = \Drupal::service('librarian_service.importbook');
-
 		$returnInfo = $s->getBookInfoFromISBN($isbn);
 
-		return new JsonResponse([
-			'data' => [
-				'info' => $returnInfo,
-			],
-			'method' => 'GET',
-			'status' => 200
-		]);
+		return new JsonResponse($returnInfo);
 	}
 }

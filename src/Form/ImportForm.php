@@ -97,16 +97,11 @@ class ImportForm extends FormBase
 	public function submitForm(array &$form, FormStateInterface $form_state)
 	{
 		$input = $form_state->getUserInput();
-		// dpr($form_state);
 		$booksToAdd = explode(',', $input['books_to_add']);
 
 		$bookNIDs = $this->getBookNIDs($booksToAdd);
 		$uid = \Drupal::currentUser()->id();
 		$currentHoldings = $this->getUserHoldings($uid);
-		// dpr("Holdings");
-		// dpr($currentHoldings);
-		// dpr("ISBNs submitted");
-		// dpr($booksToAdd);
 		// Now add any holdings (copies of the submitted books) that this user doesn't have yet
 		foreach ($booksToAdd as $isbn) {
 			if (!in_array($isbn, $currentHoldings)) {
