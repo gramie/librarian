@@ -5,10 +5,9 @@ librarian.site_info:
   requirements:
     _access: 'TRUE'
 
-librarian.import_form:
-  path: /import-isbn
+librarian.create_loan:
+  path: /create_loan
   defaults:
-    _form: Drupal\librarian\Form\ImportForm
-    _title: Import ISBNs
+    _controller: Drupal\librarian\Controller\LibrarianController::createLoan
   requirements:
     _access: 'TRUE'

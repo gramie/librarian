@@ -1,20 +1,33 @@
 <?php
+
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\StreamWrapper\PublicStream;
-use Drupal\Core\File\FileSystemInterface;
 
 /**
  * Implements hook_form_alter
  */
-function librarian_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+function librarian_form_alter(&$form, FormStateInterface $form_state, $form_id)
+{
 	if (in_array($form_id, ['node_book_form', 'node_book_edit_form'])) {
-		$form['#attached']['library'][] = 'librarian/librarian';
-		$form['field_isbn']['#suffix'] = '<span id="lookup-button">Lookup</span>';
+		_librarian_bookeditform($form);
+	} else if ($form_id == 'node_loan_form') {
+		// dpr($form);
+		$form['title']['widget'][0]['value']['#default_value'] = 'Loan: ' . date('Y-m-d H:i', time());
+	}
+}
 
-		$form['scanner'] = [
-			'#type' => 'inline_template',
-			'#template' => '<div>
-								<a class="button" id="startButton">Scan</a>
+function _librarian_bookeditform(&$form)
+{
+	$form['#attached']['library'][] = 'librarian/librarian';
+	$form['field_isbn']['#suffix'] = '<span id="lookup-button">Lookup</span>';
+	$form['cover_url'] = [
+		'#type' => 'hidden',
+	];
+
+	$form['scanner'] = [
+		'#type' => 'inline_template',
+		'#template' => '<div id="lookup-controls">
+							<div id="scan-controls"><div>
+								<a class="button" id="startButton">Scanx</a>
 								<a class="button" id="resetButton">Stop</a>
 							</div>
 
@@ -26,20 +39,31 @@ function librarian_form_alter(&$form, FormStateInterface $form_state, $form_id) 
 								<label for="sourceSelect">Change video source:</label>
 								<select id="sourceSelect" style="max-width:400px">
 								</select>
-							</div>',
-		];
-	}
+							</div>
+						</div>
+						<div id="cover-display"><img id="cover-image" src=""/></div>
+						</div>',
+	];
 }
 
-function _librarian_download_image(\Drupal\Core\Entity\EntityInterface $entity, string $imageURL) {
-	$isbn = $entity->get('field_isbn')->value;
-	$imageTarget = "public://covers/$isbn.jpg";
+/**
+ * Things that have to be done when certain types of content are saved
+ * 
+ * @param Drupal\Core\Entity\EntityInterface $entity
+ * @return void
+ */
+function librarian_entity_presave(Drupal\Core\Entity\EntityInterface $entity)
+{
+	$s = \Drupal::service('librarian_service.library');
 
-	$imageData = file_get_contents($imageURL);
-	$imageObject = \Drupal::service('file.repository')->writeData($imageData, $imageTarget);
-
-	$entity->set('field_book_cover', [
-		'target_id' => $imageObject->id(),
-		'alt' => 'Book cover'
-	]);
+	switch ($entity->bundle()) {
+		case 'book':
+			// When a Book is saved, we may need to get the cover image and download it to the local filesystem
+			$s->saveBook($entity);
+			break;
+		case 'loan':
+			// When a loan is saved, it can affect the availability of a book
+			$s->saveLoan($entity);
+			break;
+	}
 }

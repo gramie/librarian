@@ -24,11 +24,19 @@ function processISBN(isbn) {
 	jQuery.getJSON(drupalSettings.path.baseUrl + 'lookup-isbn/?isbn=' + isbn, function (result) {
 		if (Object.keys(result).length > 0) {
 			fillFormWithLookupData(result);
+		} else {
+			alert("No book found for this ISBN");
 		}
 	});
 }
 
+/**
+ * Take the data and put it into the Drupal form
+ * 
+ * @param {Object} data 
+ */
 function fillFormWithLookupData(data) {
+	console.log(data);
 	const fields = {
 		title: 'edit-title-0-value',
 		subtitle: 'edit-field-subtitle-0-value',
@@ -47,4 +55,7 @@ function fillFormWithLookupData(data) {
 	const editorKeys = Drupal.CKEditor5Instances.keys().toArray();
 	const editor = Drupal.CKEditor5Instances.get(editorKeys.shift());
 	editor.setData(data.description);
+
+	jQuery('#cover-image').attr('src', data.coverImage);
+	jQuery('#edit-field-remote-image-url-0-value').val(data.coverImage);
 }

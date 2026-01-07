@@ -28,7 +28,8 @@ window.addEventListener('load', function () {
 						const currentISBN = jQuery('#edit-isbn').val();
 						if (result.text != currentISBN) {
 							console.log('"' + result.text + '" != "' + currentISBN + '"'); 
-							jQuery('#edit-isbn').val(result.text);
+							jQuery('#edit-field-isbn-0-value').val(result.text);
+                            lookupISBNValue();
 							beep();
 						}
                     }

@@ -26,7 +26,9 @@ class ImportBookService
 	{
 		$result = [];
 
-		$bookInfo = $this->lookupBookInfoGoogle($isbn);
+		// $bookInfo = $this->lookupBookInfoGoogle($isbn);
+		$bookInfo = $this->lookupBookInfoOpenLibrary($isbn);
+	
 		if (count($bookInfo) > 0) {
 			$return_fields = ['isbn', 'title', 'subtitle', 'description', 'publication_year', 'authors', 'coverImage', 'categories'];
 			foreach ($return_fields as $fieldName) {
@@ -34,6 +36,11 @@ class ImportBookService
 			}
 		}
 
+		// Sometimes the subtitle is the same as the description. If so, only use the subtitle
+		if ($result['subtitle'] == $result['description']) {
+			$result['description'] = '';
+		}
+		
 		return $result;
 	}
 
@@ -59,6 +66,9 @@ class ImportBookService
 
 		if ($response['totalItems'] > 0) {
 			$book = $response['items'][0]['volumeInfo'];
+			// For some reason, the cover is given with a HTTP URL
+			$cover = str_replace('http://', 'https://', $book['imageLinks']['thumbnail']);
+
 			$result = [
 				'isbn' => $isbn,
 				'title' => $book['title'],
@@ -67,7 +77,7 @@ class ImportBookService
 				'description' => $book['description'] ?? '',
 				'publication_year' => $this->getPublicationYear($book['publishedDate']),
 				'authors' => $this->processAuthorNames($book['authors']),
-				'coverImage' => $book['imageLinks']['thumbnail'],
+				'coverImage' => $cover,
 				'categories' => $book['categories'],
 				'raw_data' => $rawResponse,
 			];
@@ -127,9 +137,10 @@ class ImportBookService
 			$result = [
 				'isbn' => $isbn,
 				'title' => $details['title'],
+				'subtitle' => $details['subtitle'],
 				'description' => $details['description']['value'] ?: $details['subtitle'] ?: '',
 				'publication_year' => $this->getPublicationYear($details['publish_date']),
-				'authors' => $authors,
+				'authors' => $this->processAuthorNames($authors),
 				'coverImage' => $book['data']['cover']['large'],
 				'raw_data' => $rawResponse,
 			];
@@ -229,7 +240,7 @@ class ImportBookService
 	 * @param string $isbn
 	 * @param string $imageURL
 	 */
-	private function downloadImage(string $isbn, string $imageURL)
+	public function downloadImage(string $isbn, string $imageURL)
 	{
 		$imageTarget = "public://covers/$isbn.jpg";
 
