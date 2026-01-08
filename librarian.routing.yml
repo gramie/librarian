@@ -11,3 +11,12 @@ librarian.create_loan:
     _controller: Drupal\librarian\Controller\LibrarianController::createLoan
   requirements:
     _access: 'TRUE'
+
+librarian.loan_form:
+  path: '/new_loan'
+  defaults:
+    _form: '\Drupal\librarian\Form\LoanForm'
+    _title: 'Create new Loan'
+  requirements:
+    _permission: 'access content'
+    _access: 'TRUE'

@@ -3,6 +3,7 @@
 namespace Drupal\librarian\Services;
 
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\node\Entity\Node;
 
 class LibraryService
 {
@@ -32,8 +33,8 @@ class LibraryService
 
 		// If the subtitle and description are the same (this sometimes happens)
 		// drop the description
-		if ($entity->get('field_subtitle')->value == $entity->get('field_description')->value) {
-			$entity->set('field_description', '');
+		if ($entity->get('field_subtitle')->value == $entity->get('body')->value) {
+			$entity->set('body', '');
 		}
 	}
 
@@ -45,25 +46,12 @@ class LibraryService
 	 * @param EntityInterface $entity
 	 * @return void
 	 */
-	public function saveLoan(EntityInterface $entity)
-	{
-		// If there are multiple books in the loan, put each of them in their own loan
-		// (so that they can be returned individually)
-		$status = $entity->get('field_status')->value;
-		$book = $entity->get('field_book_borrowed')->first()->get('entity');
-		// If a book has been returned, it is available, otherwise ('Loaned' or 'Lost') it is unavailable
-		$book->set('field_is_available', $status == 'Returned');
-		$book->save();
-
-		// Don't allow the same book to be borrowed more than once in the same loan!
-		// $book
-	}
 
 	private function saveDuplicateLoan(EntityInterface $entity, int $bookID)
 	{
 		$node = Node::create([
 			'type' => 'loan',
-			'title' => $bookInfo['title'],
+			'title' => $entity->title,
 			'body' => [
 				'value' => $bookInfo['description'],
 				'format' => 'full_html'

@@ -61,9 +61,5 @@ function librarian_entity_presave(Drupal\Core\Entity\EntityInterface $entity)
 			// When a Book is saved, we may need to get the cover image and download it to the local filesystem
 			$s->saveBook($entity);
 			break;
-		case 'loan':
-			// When a loan is saved, it can affect the availability of a book
-			$s->saveLoan($entity);
-			break;
 	}
 }
