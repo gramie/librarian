@@ -18,7 +18,6 @@ function librarian_form_alter(&$form, FormStateInterface $form_state, $form_id)
 function _librarian_bookeditform(&$form)
 {
 	$form['#attached']['library'][] = 'librarian/librarian';
-	$form['field_isbn']['#suffix'] = '<span id="lookup-button">Lookup</span>';
 	$form['cover_url'] = [
 		'#type' => 'hidden',
 	];
@@ -27,7 +26,7 @@ function _librarian_bookeditform(&$form)
 		'#type' => 'inline_template',
 		'#template' => '<div id="lookup-controls">
 							<div id="scan-controls"><div>
-								<a class="button" id="startButton">Scanx</a>
+								<a class="button" id="startButton">Scan</a>
 								<a class="button" id="resetButton">Stop</a>
 							</div>
 

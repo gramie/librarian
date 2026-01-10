@@ -28,22 +28,53 @@ class ImportBookService
 
 		// $bookInfo = $this->lookupBookInfoGoogle($isbn);
 		$bookInfo = $this->lookupBookInfoOpenLibrary($isbn);
-	
+		$bookInfo = $this->getGoogleBookInfoIfNecessary($isbn, $bookInfo);
+
 		if (count($bookInfo) > 0) {
 			$return_fields = ['isbn', 'title', 'subtitle', 'description', 'publication_year', 'authors', 'coverImage', 'categories'];
 			foreach ($return_fields as $fieldName) {
 				$result[$fieldName] = $bookInfo[$fieldName];
 			}
+
+			// Sometimes the subtitle is the same as the description. If so, only use the subtitle
+			if ($result['subtitle'] == $result['description']) {
+				$result['description'] = '';
+			}
+
 		}
 
-		// Sometimes the subtitle is the same as the description. If so, only use the subtitle
-		if ($result['subtitle'] == $result['description']) {
-			$result['description'] = '';
-		}
-		
 		return $result;
 	}
 
+	/**
+	 * See if any important information (cover image, subtitle, description) may be missing
+	 * from the book info, and go to Google Books to try and get it
+	 * 
+	 * @param string $isbn
+	 * @param array $bookInfo
+	 * @return array
+	 */
+	private function getGoogleBookInfoIfNecessary(string $isbn, array $bookInfo): array
+	{
+		if (array_key_exists('error', $bookInfo)) {
+			return $this->lookupBookInfoGoogle($isbn);
+		}
+
+		if (!$bookInfo['subtitle'] || !$bookInfo['description'] || $bookInfo['coverImage']) {
+			$googleInfo = $this->lookupBookInfoGoogle($bookInfo['isbn']);
+			if (!$bookInfo['subtitle'] && $googleInfo['subtitle']) {
+				$bookInfo['subtitle'] = $googleInfo['subtitle'];
+			}
+			if (!$bookInfo['description'] && $googleInfo['description'] && $googleInfo['description'] != $bookInfo['subtitle']) {
+				$bookInfo['description'] = $googleInfo['description'];
+			}
+			if (!$bookInfo['coverImage'] && $googleInfo['coverImage']) {
+				$bookInfo['coverImage'] = $googleInfo['coverImage'];
+			}
+		}
+
+		return $bookInfo;
+	}
 
 	/**
 	 * Go to an outside website to get book info if necessary
@@ -57,13 +88,8 @@ class ImportBookService
 		$result = [];
 
 		$lookupURL = "https://www.googleapis.com/books/v1/volumes?q=isbn:$isbn";
-		// dpr($lookupURL);
 		$rawResponse = file_get_contents($lookupURL);
 		$response = \Drupal\Component\Serialization\Json::decode($rawResponse);
-		if ($response['totalItems'] == 0) {
-			return $result;
-		}
-
 		if ($response['totalItems'] > 0) {
 			$book = $response['items'][0]['volumeInfo'];
 			// For some reason, the cover is given with a HTTP URL
@@ -83,15 +109,12 @@ class ImportBookService
 			];
 		}
 
-		if ($result == []) {
-			$result = ['error' => 'Book not found'];
-		}
-
 		return $result;
 	}
 
-	private function processAuthorNames(array $names) : array {
-		return array_map(function($name) {
+	private function processAuthorNames(array $names): array
+	{
+		return array_map(function ($name) {
 			$nameParts = explode(' ', $name);
 			switch (count($nameParts)) {
 				case 1:

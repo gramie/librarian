@@ -1,6 +1,6 @@
 jQuery('document').ready(function () {
-	jQuery('#lookup-button')
-		.html('<input type="button" id="lookup-isbn" value="Lookup" />')
+	jQuery('<input type="button" id="lookup-isbn" value="Lookup" style="margin-left: 4px;" />').insertAfter('#edit-field-isbn-0-value')
+		.css('height', jQuery('#edit-field-isbn-0-value').css('height'))
 		.click(function () {
 			lookupISBNValue();
 		});
@@ -15,23 +15,24 @@ jQuery('#edit-field-isbn-0-value')
 	});
 
 function lookupISBNValue() {
-	const ISBNControl = jQuery('#edit-field-isbn-0-value');
-	processISBN(ISBNControl.val())
-}
+	const isbn = jQuery('#edit-field-isbn-0-value').val();
+	
+	jQuery('#lookup-isbn').after(Drupal.theme.ajaxProgressThrobber());
+	jQuery('#lookup-isbn').attr('disabled', true);
 
-function processISBN(isbn) {
-	stopDuplicates = true;
 	jQuery.getJSON(drupalSettings.path.baseUrl + 'lookup-isbn/?isbn=' + isbn, function (result) {
-		if (Object.keys(result).length > 0) {
+		if (Object.keys(result).length > 0 && !result.error) {
 			fillFormWithLookupData(result);
 		} else {
-			alert("No book found for this ISBN");
+			alert(result.error);
 		}
+		jQuery('.ajax-progress').remove();
+		jQuery('#lookup-isbn').attr('disabled', false);
 	});
 }
 
 /**
- * Take the data and put it into the Drupal form
+ * Take the data and put it into the Drupal Add Book form
  * 
  * @param {Object} data 
  */

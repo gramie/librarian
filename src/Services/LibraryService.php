@@ -57,21 +57,19 @@ class LibraryService
 				'format' => 'full_html'
 			],
 		]);
-		$node->field_subtitle = $bookInfo['subtitle'];
-		$node->field_isbn = $bookInfo['isbn'];
-		$node->field_authors = $bookInfo['authors'];
-		$node->field_raw_data = $bookInfo['raw_data'];
-		$node->field_publication_year = $bookInfo['publication_year'];
-		if ($bookInfo['coverImage']) {
-			$node->set('field_cover_image', [
-				'target_id' => $this->downloadImage($bookInfo['isbn'], $bookInfo['coverImage']),
-				'alt' => 'Book cover'
-			]);
-		}
-		$node->field_categories = $this->saveCategories($bookInfo['categories']);
 
 		$node->save();
 
 	}
+
+	public function getBookFromLibrary(string $isbn): array {
+		$query = \Drupal::entityQuery('node')
+			->accessCheck(true)
+			->condition('type', 'book')
+			->condition('field_isbn', $isbn);
+		$result = $query->execute();
+		return Node::load(array_shift($result))->toArray();
+	}
+
 
 }

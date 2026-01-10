@@ -17,16 +17,31 @@ class LibrarianController extends ControllerBase
 	 */
 	public function lookupISBN(): JsonResponse
 	{
+		$returnInfo = ['error' => 'Book information not found'];
+
 		$params = \Drupal::request()->query->all();
 		$isbn = $params['isbn'];
 
-		$s = \Drupal::service('librarian_service.importbook');
-		$returnInfo = $s->getBookInfoFromISBN($isbn);
+		if ($isbn) {
+			$libraryService = \Drupal::service('librarian_service.library');
+			$book = $libraryService->getBookFromLibrary($isbn);
+			if ($book) {
+				$returnInfo['error'] = '"' . $book['title'][0]['value'] . '" is already in the library (Location: ' 
+						. $book['field_location'][0]['value'] . ')';
+			} else {
+				$importService = \Drupal::service('librarian_service.importbook');
+				$bookInfo = $importService->getBookInfoFromISBN($isbn);
+
+				if ($bookInfo) {
+					$returnInfo = $bookInfo;
+				}
+			}
+		}
 
 		return new JsonResponse($returnInfo);
 	}
 
-	public function createLoan() : JsonResponse
+	public function createLoan(): JsonResponse
 	{
 		try {
 			$params = \Drupal::request()->query->all();
@@ -34,7 +49,7 @@ class LibrarianController extends ControllerBase
 			if (!$bookID) {
 				throw new Exception('No Book ID');
 			}
-			$book = \Drupal\node\Entity\Node::load($bookID);
+			$book = Node::load($bookID);
 			if (!$book) {
 				throw new Exception('Book not found');
 			}
@@ -42,7 +57,7 @@ class LibrarianController extends ControllerBase
 			if (!$patronID) {
 				throw new Exception('No Patron ID');
 			}
-			$patron = \Drupal\node\Entity\Node::load($patronID);
+			$patron = Node::load($patronID);
 			if (!$patron) {
 				throw new Exception('Patron not found');
 			}
@@ -61,7 +76,7 @@ class LibrarianController extends ControllerBase
 				$node->save();
 				$result = ['status' => 'OK', 'message', 'Loan created successfully'];
 			}
-		} catch (\Exception $e) {
+		} catch (Exception $e) {
 			$result = ['status' => 'ERROR', 'message' => "Error creating loan: " . $e->getMessage()];
 		}
 
@@ -69,7 +84,8 @@ class LibrarianController extends ControllerBase
 
 	}
 
-	private function openLoanExists(int $bookID): bool {
+	private function openLoanExists(int $bookID): bool
+	{
 		$query = \Drupal::entityQuery('node')
 			->condition('type', 'loan')
 			->condition('field_book_borrowed', $bookID)
