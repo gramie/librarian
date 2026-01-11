@@ -49,8 +49,9 @@ function fillFormWithLookupData(data) {
 		control.val(data[fieldName]);
 	}
 
-	for (const authorIdx in data.authors) {
-		jQuery('#edit-field-authors-' + authorIdx + '-value').val(data.authors[authorIdx].join(', '));
+	for (let authorIdx = 0; authorIdx < 5; authorIdx++) {
+		const authorName = data.authors[authorIdx] ? data.authors[authorIdx] : [];
+		jQuery('#edit-field-authors-' + authorIdx + '-value').val(authorName.join(', '));
 	}
 
 	const editorKeys = Drupal.CKEditor5Instances.keys().toArray();

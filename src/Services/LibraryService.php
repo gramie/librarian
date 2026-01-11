@@ -62,13 +62,22 @@ class LibraryService
 
 	}
 
+	/**
+	 * If the book is in the library, return it
+	 * 
+	 * @param string $isbn
+	 * @return array
+	 */
 	public function getBookFromLibrary(string $isbn): array {
 		$query = \Drupal::entityQuery('node')
 			->accessCheck(true)
 			->condition('type', 'book')
 			->condition('field_isbn', $isbn);
 		$result = $query->execute();
-		return Node::load(array_shift($result))->toArray();
+		if (count($result) > 0) {
+			return Node::load(array_shift($result))->toArray();
+		}
+		return [];
 	}
 
 
