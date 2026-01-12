@@ -1,8 +1,42 @@
+/** Add new Book **/
 div#lookup-controls {
     display: flex;
     gap: 10px;
 }
 
 div#cover-display {
-    width: 40%;
+    width: 100%;
+}
+
+div#cover-display p {
+    display: none;
+    text-align: center;
+    font-weight: bold;
+}
+
+div#cover-display img.selected {
+    border: 3px solid blue;
+}
+
+/** Views put exposed filters on the same line **/
+form.views-exposed-form {
+    display: flex;
+    gap: 8px;
+}
+.form-actions {
+    margin: auto 0;
+}
+
+/** Book page **/
+.book-page {
+    display: grid;
+    grid-template-columns: 60% 40%;
+}
+
+article.node {
+    margin-bottom: 2em;
+}
+
+th {
+    background-color: var(--color-secondary);
 }

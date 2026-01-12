@@ -4,6 +4,15 @@ jQuery('document').ready(function () {
 		.click(function () {
 			lookupISBNValue();
 		});
+
+	jQuery('#cover-images img').click(function() {
+		const image = jQuery(this);
+		jQuery('#cover-display img').removeClass('selected');
+		image.addClass('selected');
+		const url = image.attr('src');
+		jQuery('#edit-field-remote-image-url-0-value').val(url);
+	});
+
 });
 
 jQuery('#edit-field-isbn-0-value')
@@ -58,6 +67,16 @@ function fillFormWithLookupData(data) {
 	const editor = Drupal.CKEditor5Instances.get(editorKeys.shift());
 	editor.setData(data.description);
 
-	jQuery('#cover-image').attr('src', data.coverImage);
-	jQuery('#edit-field-remote-image-url-0-value').val(data.coverImage);
+	jQuery('div#cover-display p').hide();
+
+	jQuery('#cover-display img').hide();
+	if (data.coverImage.length > 0) {
+		jQuery('#cover-image-0').attr('src', data.coverImage[0]).addClass('selected').show();
+		jQuery('#edit-field-remote-image-url-0-value').val(data.coverImage[0]);
+	}
+	if (data.coverImage.length > 1) {
+		jQuery('div#cover-display p').show();
+		jQuery('#cover-image-1').attr('src', data.coverImage[1]).show();
+	}
+
 }

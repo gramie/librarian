@@ -27,89 +27,82 @@ class ImportBookService
 		$result = [];
 
 		// $bookInfo = $this->lookupBookInfoGoogle($isbn);
-		$bookInfo = $this->lookupBookInfoOpenLibrary($isbn);
-		$bookInfo = $this->getGoogleBookInfoIfNecessary($isbn, $bookInfo);
+		$bookInfo = $this-> getEmptyBookInfo($isbn);
+		$bookInfo = $this->lookupBookInfoOpenLibrary($bookInfo);
+		$bookInfo = $this->lookupBookInfoGoodReads($bookInfo);
+		$result = $this->lookupBookInfoGoogle($bookInfo);
 
-		if (count($bookInfo) > 0) {
-			$return_fields = ['isbn', 'title', 'subtitle', 'description', 'publication_year', 'authors', 'coverImage', 'categories'];
-			foreach ($return_fields as $fieldName) {
-				$result[$fieldName] = $bookInfo[$fieldName];
-			}
-
-			// Sometimes the subtitle is the same as the description. If so, only use the subtitle
-			if ($result['subtitle'] == $result['description']) {
-				$result['description'] = '';
-			}
-
+		// Sometimes the subtitle is the same as the description. If so, only use the subtitle
+		if ($result['subtitle'] == $result['description']) {
+			$result['description'] = '';
 		}
 
 		return $result;
 	}
 
-	/**
-	 * See if any important information (cover image, subtitle, description) may be missing
-	 * from the book info, and go to Google Books to try and get it
-	 * 
-	 * @param string $isbn
-	 * @param array $bookInfo
-	 * @return array
-	 */
-	private function getGoogleBookInfoIfNecessary(string $isbn, array $bookInfo): array
+	private function getEmptyBookInfo(string $isbn): array
 	{
-		if (array_key_exists('error', $bookInfo)) {
-			return $this->lookupBookInfoGoogle($isbn);
-		}
-
-		if (!$bookInfo['subtitle'] || !$bookInfo['description'] || $bookInfo['coverImage']) {
-			$googleInfo = $this->lookupBookInfoGoogle($bookInfo['isbn']);
-			if (!$bookInfo['subtitle'] && $googleInfo['subtitle']) {
-				$bookInfo['subtitle'] = $googleInfo['subtitle'];
-			}
-			if (!$bookInfo['description'] && $googleInfo['description'] && $googleInfo['description'] != $bookInfo['subtitle']) {
-				$bookInfo['description'] = $googleInfo['description'];
-			}
-			if (!$bookInfo['coverImage'] && $googleInfo['coverImage']) {
-				$bookInfo['coverImage'] = $googleInfo['coverImage'];
-			}
-		}
-
-		return $bookInfo;
+		return [
+			'isbn' => $isbn, 'title' => '', 'subtitle' => '', 'description' => '', 'publication_year' => 0, 
+			'authors' => [], 'coverImage' => [], 'categories' => [],
+		];
 	}
 
 	/**
 	 * Go to an outside website to get book info if necessary
 	 * But first check to see if the book already exists
 	 * 
-	 * @param string $isbn
+	 * @param array $bookInfo
 	 * @return array|array{authors: mixed, categories: mixed, coverImage: mixed, description: mixed, isbn: string, publication_year: mixed, raw_data: bool|string, subtitle: mixed, title: mixed|array{error: string}}
 	 */
-	private function lookupBookInfoGoogle(string $isbn): array
+	private function lookupBookInfoGoogle(array $bookInfo): array
 	{
 		$result = [];
 
-		$lookupURL = "https://www.googleapis.com/books/v1/volumes?q=isbn:$isbn";
+		$lookupURL = "https://www.googleapis.com/books/v1/volumes?q=isbn:" . $bookInfo['isbn'];
 		$rawResponse = file_get_contents($lookupURL);
 		$response = \Drupal\Component\Serialization\Json::decode($rawResponse);
 		if ($response['totalItems'] > 0) {
 			$book = $response['items'][0]['volumeInfo'];
 			// For some reason, the cover is given with a HTTP URL
-			$cover = str_replace('http://', 'https://', $book['imageLinks']['thumbnail']);
 
 			$result = [
-				'isbn' => $isbn,
-				'title' => $book['title'],
-				'language' => $book['language'],
-				'subtitle' => $book['subtitle'] ?? '',
-				'description' => $book['description'] ?? '',
-				'publication_year' => $this->getPublicationYear($book['publishedDate']),
-				'authors' => $this->processAuthorNames($book['authors']),
-				'coverImage' => $cover,
+				'title' => $book['title'] ?: $bookInfo['title'],
+				'language' => $book['language'] ?: $bookInfo['language'],
+				'subtitle' => $book['subtitle'] ?? ($bookInfo['subtitle'] ?: ''),
+				'description' => $book['description'] ?? ($bookInfo['description'] ?: ''),
+				'publication_year' => $this->getPublicationYear($book['publishedDate']) ?: $bookInfo['publisheddate'],
+				'authors' => $this->processAuthorNames($book['authors']) ?: $bookInfo['authors'],
 				'categories' => $book['categories'],
-				'raw_data' => $rawResponse,
+				'coverImage' => $bookInfo['coverImage'],
 			];
 		}
 
 		return $result;
+	}
+
+		/**
+	 * Go to an outside website to get book info if necessary
+	 * But first check to see if the book already exists
+	 * 
+	 * @param array $bookInfo
+	 * @return array|array{authors: mixed, categories: mixed, coverImage: mixed, description: mixed, isbn: string, publication_year: mixed, raw_data: bool|string, subtitle: mixed, title: mixed|array{error: string}}
+	 */
+	private function lookupBookInfoGoodReads(array $bookInfo): array
+	{
+		$result = [];
+
+		$lookupURL = "https://bookcover.longitood.com/bookcover/" . $bookInfo['isbn'];
+		$rawResponse = file_get_contents($lookupURL);
+		if ($rawResponse) {
+			$response = \Drupal\Component\Serialization\Json::decode($rawResponse);
+
+			if (array_key_exists('url', $response)) {
+				$bookInfo['coverImage'][] = $response['url'];
+			}
+		}
+
+		return $bookInfo;
 	}
 
 	private function processAuthorNames(array $names): array
@@ -137,19 +130,19 @@ class ImportBookService
 	/**
 	 * Take an ISBN and look up its information in the Open Library
 	 *
-	 * @param string $isbn
+	 * @param array $bookInfo
 	 * @return array|array{authors: array, coverImage: mixed, description: mixed, isbn: string, publication_year: mixed, raw_data: bool|string, title: mixed|array{error: string}}
 	 */
-	private function lookupBookInfoOpenLibrary(string $isbn): array
+	private function lookupBookInfoOpenLibrary(array $bookInfo): array
 	{
 		$result = [];
 
-		$lookupURL = "https://openlibrary.org/api/volumes/brief/isbn/$isbn.json";
+		$lookupURL = "https://openlibrary.org/api/volumes/brief/isbn/" . $bookInfo['isbn'] . ".json";
 		// dpr($lookupURL);
 		$rawResponse = file_get_contents($lookupURL);
 		$response = \Drupal\Component\Serialization\Json::decode($rawResponse);
 
-		if (count($response) > 0) {
+		if (is_array($response) && count($response) > 0) {
 			$book = array_pop($response['records']);
 			// dpr($book);
 			$details = $book['details']['details'];
@@ -158,15 +151,15 @@ class ImportBookService
 			}, $book['data']['authors']);
 
 			$result = [
-				'isbn' => $isbn,
-				'title' => $details['title'],
-				'subtitle' => $details['subtitle'],
-				'description' => $details['description']['value'] ?: $details['subtitle'] ?: '',
-				'publication_year' => $this->getPublicationYear($details['publish_date']),
-				'authors' => $this->processAuthorNames($authors),
-				'coverImage' => $book['data']['cover']['large'],
-				'raw_data' => $rawResponse,
+				'isbn' => $bookInfo['isbn'],
+				'title' => $details['title'] ?: $bookInfo['title'],
+				'subtitle' => $details['subtitle'] ?: $bookInfo['subtitle'],
+				'description' => $details['description']['value'] ?: $bookInfo['subtitle'],
+				'publication_year' => $this->getPublicationYear($details['publish_date'] ?: $bookInfo['publication_year']),
+				'authors' => $this->processAuthorNames($authors) ?: $bookInfo['authors'],
+				'coverImage' => $bookInfo['coverImage'],
 			];
+			$result['coverImage'][] = $book['data']['cover']['large'];
 		}
 
 		if ($result == []) {
