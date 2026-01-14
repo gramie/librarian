@@ -4,6 +4,7 @@ namespace Drupal\librarian\Services;
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\node\Entity\Node;
+use Exception;
 
 class LibraryService
 {
@@ -36,6 +37,10 @@ class LibraryService
 		if ($entity->get('field_subtitle')->value == $entity->get('body')->value) {
 			$entity->set('body', '');
 		}
+
+		// If the title starts with "A", "An", "The", rearrange it
+		// "A Simple Man" becomes "Simple Man, A"
+		$entity->title->value = $this->putTextInSortingFormat($entity->title->value);
 	}
 
 	/**
@@ -46,7 +51,6 @@ class LibraryService
 	 * @param EntityInterface $entity
 	 * @return void
 	 */
-
 	private function saveDuplicateLoan(EntityInterface $entity, int $bookID)
 	{
 		$node = Node::create([
@@ -80,5 +84,56 @@ class LibraryService
 		return [];
 	}
 
+	/**
+	 * Change the status of a loan
+	 *
+	 * @param integer $loanID
+	 * @param string $newStatus
+	 * @return void
+	 */
+	public function setLoanStatus(int $loanID, string $newStatus): void {
+		$loan = Node::load($loanID);
+		if (!$loan) {
+			throw new Exception('Not a valid loan');
+		}
 
+		if (in_array($newStatus, ['Returned', 'Lost'])) {
+			throw new Exception(('Not a valid status'));
+		}
+
+		$loanStatus = $loan->field_status->value;
+		if ($loanStatus == 'Loaned') {
+			$loan->field_status->value = $newStatus;
+			$loan->save();
+
+			// If a book has been returned, it is now available for others to borrow
+			// If it was lost, it is no longer available, so don't change the availability
+			if ($newStatus == 'Returned') {
+				$bookID = $loan->field_book_borrowed->target_id;
+				$book = Node::load($bookID);
+				$book->field_is_available->value = true;
+				$book->save();
+			}
+		}
+	}
+
+	/**
+	 * Take a string and move "A ", "An", or "The " to the end
+	 * e.g. "The Lion Sleeps Tonight" => "Lion Sleeps Tonight, The"
+	 *
+	 * @param string $input
+	 * @return string
+	 */
+	public function putTextInSortingFormat(string $input): string {
+		$articles = ['A ', 'An ', 'The '];
+
+		foreach($articles as $article) {
+			if (strpos($input, $article) === 0) {
+				$articleLen = strlen($article);
+				return substr($input, $articleLen) . ', ' . substr($article, 0, $articleLen -1);
+			}
+		}
+
+		return $input;
+	}
 }

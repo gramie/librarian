@@ -1,6 +1,7 @@
 <?php
 namespace Drupal\librarian\Controller;
 
+use Drupal\common_test\Render\MainContent\JsonRenderer;
 use Drupal\Core\Controller\ControllerBase;
 use Exception;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -26,8 +27,8 @@ class LibrarianController extends ControllerBase
 			$libraryService = \Drupal::service('librarian_service.library');
 			$book = $libraryService->getBookFromLibrary($isbn);
 			if ($book) {
-				$returnInfo['error'] = '"' . $book['title'][0]['value'] . '" is already in the library (Location: ' 
-						. $book['field_location'][0]['value'] . ')';
+				$returnInfo['error'] = '"' . $book['title'][0]['value'] . '" is already in the library (Location: '
+					. $book['field_location'][0]['value'] . ')';
 			} else {
 				$importService = \Drupal::service('librarian_service.importbook');
 				$bookInfo = $importService->getBookInfoFromISBN($isbn);
@@ -94,5 +95,53 @@ class LibrarianController extends ControllerBase
 		$result = $query->execute();
 
 		return $result > 0;
+	}
+
+	public function updateLoan(): JsonResponse
+	{
+		$result = [];
+
+		$params = \Drupal::request()->query->all();
+
+		try {
+			$libraryService = \Drupal::service('librarian_service.library');
+			$loanID = $params['loan_nid'];
+			if (!$loanID || $loanID <= 0) {
+				throw new Exception('No valid Loan ID');
+			}
+
+			$newStatus = $params['new_status'];
+			if (!in_array($newStatus, ['Returned', 'Lost'])) {
+				throw new Exception('No valid status');
+			}
+
+			$libraryService->setLoanStatus($loanID, $newStatus);
+		} catch (Exception $e) {
+			$result = ['error' => $e->getMessage()];
+		}
+
+		return new JsonResponse($result);
+	}
+
+	/**
+	 * Fix up book titles so that "A", "An" and "The" appear at the end
+	 * and the titles can be sorted sensibly
+	 * 
+	 * @return JsonResponse
+	 */
+	public function fixBookTitles(): JsonResponse
+	{
+		$libraryService = \Drupal::service('librarian_service.library');
+		$tests = [
+			'The Lion, the Witch and the Wardrobe',
+			'On the Waterfront',
+			'A Raisin in the Sun',
+			'An American Tragedy',
+		];
+		$result = array_map(function ($test) use ($libraryService) {
+			return '"' . $test . '" => "' . $libraryService->putTextInSortingFormat($test) . '"' . "\n"; 
+		}, $tests);
+
+		return new JsonResponse($result);
 	}
 }

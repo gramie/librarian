@@ -1,3 +1,8 @@
+/** Replace the search icon with a colour one **/
+.icon-search:before {
+    content: "🔍";
+}
+
 /** Add new Book **/
 div#lookup-controls {
     display: flex;

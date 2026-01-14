@@ -20,3 +20,17 @@ librarian.loan_form:
   requirements:
     _permission: 'access content'
     _access: 'TRUE'
+
+librarian.update_loan:
+  path: '/update_loan'
+  defaults:
+    _controller: Drupal\librarian\Controller\LibrarianController::updateLoan
+  requirements:
+    _access: 'TRUE'
+
+librarian.fix_titles:
+  path: '/fix_titles'
+  defaults:
+    _controller: Drupal\librarian\Controller\LibrarianController::fixBookTitles
+  requirements:
+    _access: 'TRUE'
