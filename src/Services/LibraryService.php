@@ -76,6 +76,7 @@ class LibraryService
 		$query = \Drupal::entityQuery('node')
 			->accessCheck(true)
 			->condition('type', 'book')
+			->condition('field_for_sale', true)
 			->condition('field_isbn', $isbn);
 		$result = $query->execute();
 		if (count($result) > 0) {

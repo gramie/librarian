@@ -25,14 +25,13 @@ class LibrarianController extends ControllerBase
 
 		if ($isbn) {
 			$libraryService = \Drupal::service('librarian_service.library');
-			$book = $libraryService->getBookFromLibrary($isbn);
-			if ($book) {
-				$returnInfo['error'] = '"' . $book['title'][0]['value'] . '" is already in the library (Location: '
-					. $book['field_location'][0]['value'] . ')';
-			} else {
-				$importService = \Drupal::service('librarian_service.importbook');
-				$bookInfo = $importService->getBookInfoFromISBN($isbn);
-
+			$book = $libraryService->getBookFromLibrary($isbn);		
+			// If the book was found, and it is not for sale, the one being looked up is a duplicate
+			$isDuplicate = count($book) > 0 && $book['field_for_sale'][0]['value'] != 1;
+			$importService = \Drupal::service('librarian_service.importbook');
+			$bookInfo = $importService->getBookInfoFromISBN($isbn);
+			if (count($bookInfo) > 0 {
+				$bookInfo['is_duplicate'] = $isDuplicate;
 				if ($bookInfo) {
 					$returnInfo = $bookInfo;
 				}

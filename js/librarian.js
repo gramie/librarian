@@ -47,6 +47,14 @@ function lookupISBNValue() {
  */
 function fillFormWithLookupData(data) {
 	console.log(data);
+	if (data.is_duplicate) {
+		if (confirm('This book is already in the library. Mark this as a sale book?')) {
+			jQuery('#edit-field-for-sale-value').attr('checked', true);
+		} else {
+			// The user doesn't want to save this book as a sale book
+			return;
+		}
+	}
 	const fields = {
 		title: 'edit-title-0-value',
 		subtitle: 'edit-field-subtitle-0-value',
