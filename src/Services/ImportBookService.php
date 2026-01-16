@@ -105,6 +105,13 @@ class ImportBookService
 		return $bookInfo;
 	}
 
+	/**
+	 * Do a best guess at which part of the name is the last name, and which is/are the first
+	 * then put them "lastname, firstname", more useful for sorting
+	 * 
+	 * @param array $names
+	 * @return array<array<string|null>|string>
+	 */
 	private function processAuthorNames(array $names): array
 	{
 		return array_map(function ($name) {

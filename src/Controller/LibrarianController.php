@@ -132,16 +132,21 @@ class LibrarianController extends ControllerBase
 	public function fixBookTitles(): JsonResponse
 	{
 		$libraryService = \Drupal::service('librarian_service.library');
-		$tests = [
-			'The Lion, the Witch and the Wardrobe',
-			'On the Waterfront',
-			'A Raisin in the Sun',
-			'An American Tragedy',
-		];
-		$result = array_map(function ($test) use ($libraryService) {
-			return '"' . $test . '" => "' . $libraryService->putTextInSortingFormat($test) . '"' . "\n"; 
-		}, $tests);
 
+		$query = \Drupal::entityQuery('node')
+			->condition('type', 'book')
+			->accessCheck(TRUE);
+		$nids = $query->execute();
+
+		foreach (Node::loadMultiple($nids) as $book) {
+			$title = $book->title->value;
+			dpr("title = $title");
+			if (strpos($title, 'A ') === 0 || strpos($title, 'An ') === 0 || strpos($title, 'The ') === 0 ) {
+				$book->title->value = $libraryService->putTextInSortingFormat($title);
+				$book->save();
+				dpr($book->title->value);
+			}
+		}
 		return new JsonResponse($result);
 	}
 }

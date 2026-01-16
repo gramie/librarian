@@ -45,3 +45,9 @@ article.node {
 th {
     background-color: var(--color-secondary);
 }
+
+/** Search Results **/
+body.path-search h3.title {
+    font-size: inherit;
+    padding-bottom: inherit;
+}
