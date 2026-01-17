@@ -140,7 +140,6 @@ class LibrarianController extends ControllerBase
 		$result = [];
 		foreach (Node::loadMultiple($nids) as $book) {
 			$title = $book->title->value;
-			dpr("title = $title");
 			if (strpos($title, 'A ') === 0 || strpos($title, 'An ') === 0 || strpos($title, 'The ') === 0 ) {
 				$book->title->value = $libraryService->putTextInSortingFormat($title);
 				$book->save();

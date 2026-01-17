@@ -130,8 +130,11 @@ class LibraryService
 
 		foreach($articles as $article) {
 			if (strpos($input, $article) === 0) {
+				$originalTitle = $input;
 				$articleLen = strlen($article);
-				return substr($input, $articleLen) . ', ' . substr($article, 0, $articleLen -1);
+				$newTitle = substr($input, $articleLen) . ', ' . substr($article, 0, $articleLen -1);
+				dpr("$originalTitle ==> $newTitle");
+				return $newTitle;
 			}
 		}
 
