@@ -126,9 +126,8 @@ class LibraryService
 	 * @return string
 	 */
 	public function putTextInSortingFormat(string $input): string {
-		$articles = ['A ', 'An ', 'The ', 'Le ', 'La ', 'Les ', 'L\''];
-
-		foreach($articles as $article) {
+		foreach($this->getTitleArticles() as $article) {
+			dpr("Checking $input");
 			if (strpos($input, $article) === 0) {
 				$originalTitle = $input;
 				$articleLen = strlen($article);
@@ -139,5 +138,24 @@ class LibraryService
 		}
 
 		return $input;
+	}
+
+	/**
+	 * Get an array of all the articles ("A", "An", "The", etc.) available
+	 * @return string[]
+	 */
+	public function getTitleArticles(): array {
+		return ['A ', 'An ', 'The ', 'Le ', 'La ', 'Les ', 'L\''];
+	}
+
+	public function titleStartsWithArticle(string $title) : bool
+	{
+		foreach ($this->getTitleArticles() as $article) {
+			if (strpos($title, $article) === 0) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }
