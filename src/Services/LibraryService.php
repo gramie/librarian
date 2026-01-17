@@ -126,7 +126,7 @@ class LibraryService
 	 * @return string
 	 */
 	public function putTextInSortingFormat(string $input): string {
-		$articles = ['A ', 'An ', 'The '];
+		$articles = ['A ', 'An ', 'The ', 'Le ', 'La ', 'Les ', 'L\''];
 
 		foreach($articles as $article) {
 			if (strpos($input, $article) === 0) {

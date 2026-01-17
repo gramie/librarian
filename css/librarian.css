@@ -9,6 +9,12 @@ div#lookup-controls {
     gap: 10px;
 }
 
+#cover-images {
+    display: grid;
+    grid-template-columns: 50% 50%;
+    gap: 25px;
+}
+
 div#cover-display {
     width: 100%;
 }
