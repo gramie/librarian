@@ -33,7 +33,7 @@ class ImportBookService
 		$result = $this->lookupBookInfoGoogle($bookInfo);
 
 		// Sometimes the subtitle is the same as the description. If so, only use the subtitle
-		if ($result['subtitle'] == $result['description']) {
+		if ($result && $result['subtitle'] == $result['description']) {
 			$result['description'] = '';
 		}
 
@@ -62,8 +62,13 @@ class ImportBookService
 		$lookupURL = "https://www.googleapis.com/books/v1/volumes?q=isbn:" . $bookInfo['isbn'];
 		$rawResponse = file_get_contents($lookupURL);
 		$response = \Drupal\Component\Serialization\Json::decode($rawResponse);
-		if ($response['totalItems'] > 0) {
+		if ($response['totalItems'] > 0 && $response['totalItems'] < 5) {
 			$book = $response['items'][0]['volumeInfo'];
+			if ($book['authors']) {
+				$authors = $book['authors'];
+			} else {
+				$authors = [];
+			}
 			// For some reason, the cover is given with a HTTP URL
 
 			$result = [
@@ -72,7 +77,7 @@ class ImportBookService
 				'subtitle' => $book['subtitle'] ?? ($bookInfo['subtitle'] ?: ''),
 				'description' => $book['description'] ?? ($bookInfo['description'] ?: ''),
 				'publication_year' => $this->getPublicationYear($book['publishedDate']) ?: $bookInfo['publisheddate'],
-				'authors' => $this->processAuthorNames($book['authors']) ?: $bookInfo['authors'],
+				'authors' => $this->processAuthorNames($authors) ?: $bookInfo['authors'],
 				'categories' => $book['categories'],
 				'coverImage' => $bookInfo['coverImage'],
 			];
@@ -81,7 +86,7 @@ class ImportBookService
 		return $result;
 	}
 
-		/**
+	/**
 	 * Go to an outside website to get book info if necessary
 	 * But first check to see if the book already exists
 	 * 

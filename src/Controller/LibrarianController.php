@@ -1,7 +1,6 @@
 <?php
 namespace Drupal\librarian\Controller;
 
-use Drupal\common_test\Render\MainContent\JsonRenderer;
 use Drupal\Core\Controller\ControllerBase;
 use Exception;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -25,12 +24,13 @@ class LibrarianController extends ControllerBase
 
 		if ($isbn) {
 			$libraryService = \Drupal::service('librarian_service.library');
-			$book = $libraryService->getBookFromLibrary($isbn);		
+			$book = $libraryService->getBookFromLibrary($isbn);
 			// If the book was found, and it is not for sale, the one being looked up is a duplicate
 			$isDuplicate = count($book) > 0 && $book['field_for_sale'][0]['value'] != 1;
 			$importService = \Drupal::service('librarian_service.importbook');
 			$bookInfo = $importService->getBookInfoFromISBN($isbn);
-			if (count($bookInfo) > 0 {
+
+			if (count($bookInfo) > 0) {
 				$bookInfo['is_duplicate'] = $isDuplicate;
 				if ($bookInfo) {
 					$returnInfo = $bookInfo;
@@ -137,13 +137,14 @@ class LibrarianController extends ControllerBase
 			->accessCheck(TRUE);
 		$nids = $query->execute();
 
+		$result = [];
 		foreach (Node::loadMultiple($nids) as $book) {
 			$title = $book->title->value;
 			dpr("title = $title");
 			if (strpos($title, 'A ') === 0 || strpos($title, 'An ') === 0 || strpos($title, 'The ') === 0 ) {
 				$book->title->value = $libraryService->putTextInSortingFormat($title);
 				$book->save();
-				dpr($book->title->value);
+				$result[] = $book->title->value;
 			}
 		}
 		return new JsonResponse($result);
