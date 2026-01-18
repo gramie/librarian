@@ -162,16 +162,11 @@ class LibrarianController extends ControllerBase
 		$result = [];
 		foreach (Node::loadMultiple($nids) as $book) {
 			$title = $book->title->value;
-			dpr("Checking $title");
-			if ($libraryService->titleEndsWithArticle($title)) {
-				$commaPos = strrpos($title, ', ');
-				$ending = substr($title, $commaPos +2);
-				$mainTitle = substr($title, 0, $commaPos);
-				$newTitle = "$ending $mainTitle";
-				dpr($newTitle);
-				$book->title->value = $newTitle;
-				 $book->save();
-				$result[] = $book->title->value;
+			$sortTitle = $book->field_sorting_title->value;
+
+			if (!$sortTitle) {
+				$book->field_sorting_title->value = $title;
+				$book->save();
 			}
 		}
 		return new JsonResponse($result);
