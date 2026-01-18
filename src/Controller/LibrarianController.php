@@ -41,6 +41,12 @@ class LibrarianController extends ControllerBase
 		return new JsonResponse($returnInfo);
 	}
 
+	/**
+	 * Create a loan for the submitted book
+	 * 
+	 * @throws Exception
+	 * @return JsonResponse
+	 */
 	public function createLoan(): JsonResponse
 	{
 		try {
@@ -84,6 +90,12 @@ class LibrarianController extends ControllerBase
 
 	}
 
+	/**
+	 * The book has been loaned out
+	 * 
+	 * @param int $bookID
+	 * @return bool
+	 */
 	private function openLoanExists(int $bookID): bool
 	{
 		$query = \Drupal::entityQuery('node')
@@ -96,6 +108,12 @@ class LibrarianController extends ControllerBase
 		return $result > 0;
 	}
 
+	/**
+	 * Update a loan's status (usually to "Returned" or "Lost")
+	 * 
+	 * @throws Exception
+	 * @return JsonResponse
+	 */
 	public function updateLoan(): JsonResponse
 	{
 		$result = [];
@@ -119,56 +137,6 @@ class LibrarianController extends ControllerBase
 			$result = ['error' => $e->getMessage()];
 		}
 
-		return new JsonResponse($result);
-	}
-
-	/**
-	 * Fix up book titles so that "A", "An" and "The" appear at the end
-	 * and the titles can be sorted sensibly
-	 * 
-	 * @return JsonResponse
-	 */
-	public function fixBookTitles(): JsonResponse
-	{
-		return $this->unfixBookTitles();
-		// $libraryService = \Drupal::service('librarian_service.library');
-
-		// $query = \Drupal::entityQuery('node')
-		// 	->condition('type', 'book')
-		// 	->accessCheck(TRUE);
-		// $nids = $query->execute();
-
-		// $result = [];
-		// foreach (Node::loadMultiple($nids) as $book) {
-		// 	$title = $book->title->value;
-		// 	if ($libraryService->titleStartsWithArticle($title)) {
-		// 		$book->title->value = $libraryService->putTextInSortingFormat($title);
-		// 		$book->save();
-		// 		$result[] = $book->title->value;
-		// 	}
-		// }
-		// return new JsonResponse($result);
-	}
-
-	public function unfixBookTitles() :  JsonResponse 
-	{
-		$libraryService = \Drupal::service('librarian_service.library');
-
-		$query = \Drupal::entityQuery('node')
-			->condition('type', 'book')
-			->accessCheck(TRUE);
-		$nids = $query->execute();
-
-		$result = [];
-		foreach (Node::loadMultiple($nids) as $book) {
-			$title = $book->title->value;
-			$sortTitle = $book->field_sorting_title->value;
-
-			if (!$sortTitle) {
-				$book->field_sorting_title->value = $title;
-				$book->save();
-			}
-		}
 		return new JsonResponse($result);
 	}
 }

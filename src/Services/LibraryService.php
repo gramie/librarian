@@ -38,7 +38,7 @@ class LibraryService
 			$entity->set('body', '');
 		}
 
-		// If the title starts with "A", "An", "The", rearrange it
+		// If the title starts with "A", "An", "The", set the Sorting Title to the rearranged format
 		// "A Simple Man" becomes "Simple Man, A"
 		$entity->field_sorting_title->value = $this->putTextInSortingFormat($entity->title->value);
 	}

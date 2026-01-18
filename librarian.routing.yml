@@ -3,14 +3,14 @@ librarian.site_info:
   defaults:
     _controller: Drupal\librarian\Controller\LibrarianController::lookupISBN
   requirements:
-    _access: 'TRUE'
+    _role: administrator+archives_staff
 
 librarian.create_loan:
   path: /create_loan
   defaults:
     _controller: Drupal\librarian\Controller\LibrarianController::createLoan
   requirements:
-    _access: 'TRUE'
+    _role: administrator+archives_staff
 
 librarian.loan_form:
   path: '/new_loan'
@@ -19,18 +19,11 @@ librarian.loan_form:
     _title: 'Create new Loan'
   requirements:
     _permission: 'access content'
-    _access: 'TRUE'
+    _role: administrator+archives_staff
 
 librarian.update_loan:
   path: '/update_loan'
   defaults:
     _controller: Drupal\librarian\Controller\LibrarianController::updateLoan
   requirements:
-    _access: 'TRUE'
-
-librarian.fix_titles:
-  path: '/fix_titles'
-  defaults:
-    _controller: Drupal\librarian\Controller\LibrarianController::fixBookTitles
-  requirements:
-    _access: 'TRUE'
+    _role: administrator+archives_staff
