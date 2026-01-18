@@ -130,6 +130,28 @@ class LibrarianController extends ControllerBase
 	 */
 	public function fixBookTitles(): JsonResponse
 	{
+		return $this->unfixBookTitles();
+		// $libraryService = \Drupal::service('librarian_service.library');
+
+		// $query = \Drupal::entityQuery('node')
+		// 	->condition('type', 'book')
+		// 	->accessCheck(TRUE);
+		// $nids = $query->execute();
+
+		// $result = [];
+		// foreach (Node::loadMultiple($nids) as $book) {
+		// 	$title = $book->title->value;
+		// 	if ($libraryService->titleStartsWithArticle($title)) {
+		// 		$book->title->value = $libraryService->putTextInSortingFormat($title);
+		// 		$book->save();
+		// 		$result[] = $book->title->value;
+		// 	}
+		// }
+		// return new JsonResponse($result);
+	}
+
+	public function unfixBookTitles() :  JsonResponse 
+	{
 		$libraryService = \Drupal::service('librarian_service.library');
 
 		$query = \Drupal::entityQuery('node')
@@ -140,9 +162,15 @@ class LibrarianController extends ControllerBase
 		$result = [];
 		foreach (Node::loadMultiple($nids) as $book) {
 			$title = $book->title->value;
-			if ($libraryService->titleStartsWithArticle($title)) {
-				$book->title->value = $libraryService->putTextInSortingFormat($title);
-				$book->save();
+			dpr("Checking $title");
+			if ($libraryService->titleEndsWithArticle($title)) {
+				$commaPos = strrpos($title, ', ');
+				$ending = substr($title, $commaPos +2);
+				$mainTitle = substr($title, 0, $commaPos);
+				$newTitle = "$ending $mainTitle";
+				dpr($newTitle);
+				$book->title->value = $newTitle;
+				 $book->save();
 				$result[] = $book->title->value;
 			}
 		}

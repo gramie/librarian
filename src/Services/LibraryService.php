@@ -40,7 +40,7 @@ class LibraryService
 
 		// If the title starts with "A", "An", "The", rearrange it
 		// "A Simple Man" becomes "Simple Man, A"
-		$entity->title->value = $this->putTextInSortingFormat($entity->title->value);
+		$entity->field_sorting_title->value = $this->putTextInSortingFormat($entity->title->value);
 	}
 
 	/**
@@ -152,6 +152,19 @@ class LibraryService
 	{
 		foreach ($this->getTitleArticles() as $article) {
 			if (strpos($title, $article) === 0) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	public function titleEndsWithArticle(string $title): bool
+	{
+		foreach ($this->getTitleArticles() as $article) {
+			$endArticle = ', ' . trim($article);
+			$ending = substr(trim($title), -strlen($article) -1);
+			if ($ending == $endArticle) {
 				return true;
 			}
 		}
