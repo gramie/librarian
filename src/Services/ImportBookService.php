@@ -158,10 +158,14 @@ class ImportBookService
 			$book = array_pop($response['records']);
 			// dpr($book);
 			$details = $book['details']['details'];
-			$authors = array_map(function ($author) {
-				return $author['name'];
-			}, $book['data']['authors']);
-
+			if (array_key_exists('authors', $book['data'])) {
+				$authors = array_map(function ($author) {
+					return $author['name'];
+				}, $book['data']['authors']);
+			} else {
+				$authors = [];
+			}
+			
 			$result = [
 				'isbn' => $bookInfo['isbn'],
 				'title' => $details['title'] ?: $bookInfo['title'],
