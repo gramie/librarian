@@ -127,12 +127,12 @@ class LibraryService
 	 */
 	public function putTextInSortingFormat(string $input): string {
 		foreach($this->getTitleArticles() as $article) {
-			dpr("Checking $input");
+			// dpr("Checking $input");
 			if (strpos($input, $article) === 0) {
 				$originalTitle = $input;
 				$articleLen = strlen($article);
 				$newTitle = substr($input, $articleLen) . ', ' . substr($article, 0, $articleLen -1);
-				dpr("$originalTitle ==> $newTitle");
+				// dpr("$originalTitle ==> $newTitle");
 				return $newTitle;
 			}
 		}
